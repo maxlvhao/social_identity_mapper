@@ -58,39 +58,12 @@
           <p class="instruction">Think about <strong>all the groups that you belong to</strong>. These can take any form:</p>
         </div>
 
-        <div class="examples-grid">
-          <div class="example-card">
-            <strong>Demographic/Opinion</strong>
-            <span>feminist, Australian, vegetarian</span>
-          </div>
-          <div class="example-card">
-            <strong>Leisure/Social</strong>
-            <span>book club, gardening group, friend circle</span>
-          </div>
-          <div class="example-card">
-            <strong>Community</strong>
-            <span>church group, neighborhood association</span>
-          </div>
-          <div class="example-card">
-            <strong>Sporting</strong>
-            <span>rugby club, tennis team, gym buddies</span>
-          </div>
-          <div class="example-card">
-            <strong>Work</strong>
-            <span>sales team, department, company</span>
-          </div>
-          <div class="example-card">
-            <strong>Professional</strong>
-            <span>trade union, industry association</span>
-          </div>
-          <div class="example-card">
-            <strong>Family</strong>
-            <span>immediate family, extended family</span>
-          </div>
-          <div class="example-card">
-            <strong>Educational</strong>
-            <span>study group, alumni, classmates</span>
-          </div>
+        <div class="examples-box">
+          <p class="examples-intro">Examples:</p>
+          <p class="examples-list">
+            <strong>family</strong>, <strong>book club</strong>, <strong>church group</strong>, <strong>work team</strong>, <strong>gym buddies</strong>, <strong>study group</strong>, <strong>tennis club</strong>, <strong>neighborhood friends</strong>, <strong>alumni network</strong>, <strong>volunteer group</strong>
+          </p>
+          <p class="examples-categories">These could be family, social, community, sporting, work, professional, or any other type of group.</p>
         </div>
 
         <div class="input-section">
@@ -107,8 +80,9 @@
           <p class="hint" id="groups-hint">Add at least one group to continue.</p>
         </div>
 
-        <div class="step-nav">
-          <button id="step1-next" class="btn btn-primary btn-large" disabled>Next: Rate Importance</button>
+        <div class="step-nav fixed-nav">
+          <div></div>
+          <button id="step1-next" class="btn btn-primary" disabled>Next</button>
         </div>
       </div>
     </section>
@@ -118,137 +92,127 @@
       <div class="step-content">
         <div class="step-header">
           <h2>Step 2: How Important is Each Group?</h2>
-          <p class="instruction">For each group, indicate how important it is to you. <strong>Very important</strong> groups will appear larger and in blue. <strong>Moderately important</strong> groups will be medium-sized and gold. <strong>Less important</strong> groups will be smaller and gray.</p>
-        </div>
-
-        <div class="importance-legend">
-          <div class="legend-item">
-            <div class="legend-swatch importance-high"></div>
-            <span>Very Important (Large, Blue)</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch importance-medium"></div>
-            <span>Moderately Important (Medium, Gold)</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch importance-low"></div>
-            <span>Less Important (Small, Gray)</span>
-          </div>
+          <p class="instruction">For each group, indicate how important it is to you.</p>
         </div>
 
         <div id="importance-list" class="importance-list"></div>
 
         <p class="hint" id="importance-hint">Please rate all groups before continuing.</p>
 
-        <div class="step-nav">
+        <div class="step-nav fixed-nav">
           <button id="step2-back" class="btn btn-secondary">Back</button>
-          <button id="step2-next" class="btn btn-primary btn-large">Next: Add Details</button>
+          <button id="step2-next" class="btn btn-primary">Next</button>
         </div>
       </div>
     </section>
 
     <!-- Step 3: Group Details -->
     <section id="step-3" class="step-screen">
-      <div class="step-content">
+      <div class="step-content full-width">
         <div class="step-header">
-          <h2>Step 3: Tell Us About Each Group</h2>
-          <p class="instruction">For each group, we'll ask four questions. Click on a group to expand it and add your responses.</p>
+          <h2>Step 3: Group Details</h2>
+          <p class="instruction">For each group, answer the four questions below.</p>
         </div>
 
-        <div class="details-info">
-          <p>For each group, you'll answer four questions about your membership. Click a group to expand it and enter your responses. These values will appear in the corners of each group card on your final map.</p>
+        <div class="details-questions">
+          <div class="dq"><strong>Positivity:</strong> How positive do you feel about being a member of this group? (1 = not at all positive, 10 = very positive)</div>
+          <div class="dq"><strong>Contact:</strong> In a typical month, how many days would you engage in activities related to this group? (0-30 days)</div>
+          <div class="dq"><strong>Tenure:</strong> For how many years have you been a member of this group? (use decimals, e.g. 0.5 = 6 months)</div>
+          <div class="dq"><strong>Representativeness:</strong> How well do you represent or exemplify what it means to be a member of this group? (1 = not at all, 10 = very well)</div>
         </div>
 
-        <div id="details-list" class="details-list"></div>
+        <div class="details-table-container">
+          <table class="details-table" id="details-table">
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Positivity<br><span class="th-hint">(1-10)</span></th>
+                <th>Contact<br><span class="th-hint">(days)</span></th>
+                <th>Tenure<br><span class="th-hint">(years)</span></th>
+                <th>Representativeness<br><span class="th-hint">(1-10)</span></th>
+              </tr>
+            </thead>
+            <tbody id="details-tbody"></tbody>
+          </table>
+        </div>
 
-        <div class="step-nav">
+        <div class="step-nav fixed-nav">
           <button id="step3-back" class="btn btn-secondary">Back</button>
-          <button id="step3-next" class="btn btn-primary btn-large">Next: Position Groups</button>
+          <button id="step3-next" class="btn btn-primary">Next</button>
         </div>
       </div>
     </section>
 
     <!-- Step 4: Position Groups -->
     <section id="step-4" class="step-screen">
-      <div class="step-content full-width">
+      <div class="step-content full-width no-scroll">
         <div class="step-header compact">
-          <h2>Step 4: How Different Are Your Groups?</h2>
-          <p class="instruction">Drag your groups on the canvas. <strong>Place similar groups close together</strong> and <strong>different groups far apart</strong>. Consider: Do they do different things? Does it feel different being a member? Do they have different members?</p>
+          <h2>Step 4: Position</h2>
+          <p class="instruction">Position your groups relative to each other. Drag groups on the canvas. Place <strong>similar groups close together</strong> and <strong>different groups far apart</strong>.</p>
         </div>
 
-        <div id="canvas-container-step4" class="canvas-container">
+        <div id="canvas-container-step4" class="canvas-container flex-canvas">
           <div id="groups-canvas-4" class="groups-canvas"></div>
+          <div id="drag-tutorial-4" class="tutorial-overlay">
+            <div class="tutorial-content">
+              <div class="tutorial-hand">👆</div>
+              <p>Drag groups to position them</p>
+            </div>
+          </div>
         </div>
 
-        <div class="step-nav">
+        <div class="step-nav fixed-nav">
           <button id="step4-back" class="btn btn-secondary">Back</button>
-          <button id="step4-next" class="btn btn-primary btn-large">Lock Positions & Continue</button>
+          <button id="step4-next" class="btn btn-primary">Next</button>
         </div>
       </div>
     </section>
 
     <!-- Step 5: Connections -->
     <section id="step-5" class="step-screen">
-      <div class="step-content full-width">
+      <div class="step-content full-width no-scroll">
         <div class="step-header compact">
-          <h2>Step 5: How Easy Is It to Belong to Multiple Groups?</h2>
-          <p class="instruction">Click and drag from one group to another to draw a connection. Then indicate how easy or difficult it is to be a member of both groups at the same time.</p>
+          <h2>Step 5: Belonging</h2>
+          <p class="instruction">Drag from <strong>Me</strong> to a group to indicate how easy it is for you to belong to that group. Connect any two groups to indicate how easy it is to belong to both at the same time.</p>
         </div>
 
-        <div class="connection-legend">
-          <div class="legend-item">
-            <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="conn-easy"/></svg>
-            <span>Very Easy</span>
-          </div>
-          <div class="legend-item">
-            <svg width="60" height="20"><path d="M0,10 Q15,0 30,10 Q45,20 60,10" class="conn-moderate" fill="none"/></svg>
-            <span>Moderately Easy</span>
-          </div>
-          <div class="legend-item">
-            <svg width="60" height="20"><path d="M0,10 L10,2 L20,18 L30,2 L40,18 L50,2 L60,10" class="conn-difficult" fill="none"/></svg>
-            <span>Not Easy</span>
-          </div>
-        </div>
-
-        <div id="canvas-container-step5" class="canvas-container">
+        <div id="canvas-container-step5" class="canvas-container flex-canvas">
           <svg id="connections-svg" class="connections-layer"></svg>
           <svg id="drawing-svg" class="drawing-layer"></svg>
           <div id="groups-canvas-5" class="groups-canvas locked"></div>
+          <div id="drag-tutorial-5" class="tutorial-overlay">
+            <div class="tutorial-content">
+              <div class="tutorial-hand">👆</div>
+              <p>Drag from one group to another to connect</p>
+            </div>
+          </div>
         </div>
 
-        <p class="canvas-hint">Click and drag between groups to create connections. Click a connection line to change or remove it.</p>
-
-        <div class="step-nav">
-          <button id="step5-back" class="btn btn-secondary">Back (Unlock Positions)</button>
-          <button id="step5-next" class="btn btn-primary btn-large">Finish</button>
+        <div class="step-nav fixed-nav">
+          <button id="step5-back" class="btn btn-secondary">Back</button>
+          <button id="step5-next" class="btn btn-primary">Next</button>
         </div>
       </div>
     </section>
 
     <!-- Step 6: Complete -->
     <section id="step-6" class="step-screen">
-      <div class="step-content centered">
-        <div class="complete-icon">✓</div>
-        <h2>Activity Complete!</h2>
-
-        <div class="summary-box">
+      <div class="step-content no-scroll complete-screen">
+        <div class="complete-header">
+          <div class="complete-icon">✓</div>
+          <h2>Activity Complete!</h2>
           <p>You mapped <strong id="final-groups">0</strong> groups with <strong id="final-connections">0</strong> connections.</p>
         </div>
 
-        <div class="download-section">
-          <p>Please download your data file and upload it to complete the survey.</p>
-          <button id="download-btn" class="btn btn-primary btn-large">Download My Data</button>
+        <div id="final-canvas-container" class="canvas-container final-preview">
+          <svg id="final-connections-svg" class="connections-layer"></svg>
+          <div id="final-groups-canvas" class="groups-canvas locked"></div>
         </div>
 
-        <div class="preview-section">
-          <h3>Your Social Identity Map</h3>
-          <div id="final-canvas-container" class="canvas-container preview">
-            <svg id="final-connections-svg" class="connections-layer"></svg>
-            <div id="final-groups-canvas" class="groups-canvas locked"></div>
-          </div>
+        <div class="step-nav fixed-nav">
+          <button id="back-to-edit" class="btn btn-secondary">Back</button>
+          <button id="download-btn" class="btn btn-primary">Download My Data</button>
         </div>
-
-        <button id="back-to-edit" class="btn btn-secondary">Back to Edit</button>
       </div>
     </section>
   </div>
@@ -256,27 +220,28 @@
   <!-- Connection Type Modal -->
   <div id="connection-modal" class="modal hidden">
     <div class="modal-backdrop"></div>
-    <div class="modal-content">
-      <h3>Connection Type</h3>
-      <p>How easy is it to be a member of both <strong id="modal-from"></strong> and <strong id="modal-to"></strong> at the same time?</p>
+    <div class="modal-content compact-modal">
+      <p class="modal-question" id="modal-question">How easy is it to be a member of both groups at the same time?</p>
 
-      <div class="connection-options">
-        <button class="conn-option" data-type="easy">
-          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="conn-easy"/></svg>
+      <div class="connection-options-row">
+        <button class="conn-option-compact" data-type="easy">
+          <svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" class="conn-easy"/></svg>
           <span>Very Easy</span>
         </button>
-        <button class="conn-option" data-type="moderate">
-          <svg width="60" height="20"><path d="M0,10 Q15,0 30,10 Q45,20 60,10" class="conn-moderate" fill="none"/></svg>
-          <span>Moderately Easy</span>
+        <button class="conn-option-compact" data-type="moderate">
+          <svg width="40" height="12"><path d="M0,6 Q10,0 20,6 Q30,12 40,6" class="conn-moderate" fill="none"/></svg>
+          <span>Moderate</span>
         </button>
-        <button class="conn-option" data-type="difficult">
-          <svg width="60" height="20"><path d="M0,10 L10,2 L20,18 L30,2 L40,18 L50,2 L60,10" class="conn-difficult" fill="none"/></svg>
+        <button class="conn-option-compact" data-type="difficult">
+          <svg width="40" height="12"><path d="M0,6 L8,1 L16,11 L24,1 L32,11 L40,6" class="conn-difficult" fill="none"/></svg>
           <span>Not Easy</span>
         </button>
       </div>
 
-      <button id="remove-conn-btn" class="btn btn-danger hidden">Remove Connection</button>
-      <button id="cancel-conn-btn" class="btn btn-secondary">Cancel</button>
+      <div class="modal-actions">
+        <button id="remove-conn-btn" class="btn btn-danger btn-small hidden">Remove</button>
+        <button id="cancel-conn-btn" class="btn btn-secondary btn-small">Cancel</button>
+      </div>
     </div>
   </div>
 

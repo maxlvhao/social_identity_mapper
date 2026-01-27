@@ -292,59 +292,25 @@
 
   // ==================== STEP 3: DETAILS ====================
   function renderStep3() {
-    const list = $('details-list');
+    const tbody = $('details-tbody');
 
-    list.innerHTML = state.groups.map((g, i) => `
-      <div class="detail-item ${i === 0 ? 'expanded' : ''}" data-id="${g.id}">
-        <div class="detail-item-header">
-          <div class="group-info">
-            <div class="group-swatch importance-${g.importance || 'medium'}"></div>
-            <span class="group-name">${escapeHtml(g.name)}</span>
-          </div>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="detail-item-body">
-          <div class="detail-fields">
-            <div class="detail-field">
-              <label>Positivity</label>
-              <input type="number" min="1" max="10" ${g.positivity !== null ? `value="${g.positivity}"` : ''} data-field="positivity" placeholder="1-10" required>
-              <div class="field-hint">How positive do you feel about being a member of this group?<br><em>1 = not at all positive, 10 = very positive</em></div>
-            </div>
-            <div class="detail-field">
-              <label>Contact (days per month)</label>
-              <input type="number" min="0" max="30" ${g.contact !== null ? `value="${g.contact}"` : ''} data-field="contact" placeholder="0-30" required>
-              <div class="field-hint">In a typical month, how many days would you engage in activities related to this group?<br><em>0 = never, 30 = every day</em></div>
-            </div>
-            <div class="detail-field">
-              <label>Tenure (years)</label>
-              <input type="number" min="0" step="0.5" ${g.tenure !== null ? `value="${g.tenure}"` : ''} data-field="tenure" placeholder="e.g., 2.5" required>
-              <div class="field-hint">How many years have you been a member of this group?<br><em>Use decimals for months (e.g., 0.5 = 6 months)</em></div>
-            </div>
-            <div class="detail-field">
-              <label>Representativeness</label>
-              <input type="number" min="1" max="10" ${g.representativeness !== null ? `value="${g.representativeness}"` : ''} data-field="representativeness" placeholder="1-10" required>
-              <div class="field-hint">How well do you represent or exemplify what it means to be a member of this group?<br><em>1 = not at all, 10 = very well</em></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    tbody.innerHTML = state.groups.map(g => `
+      <tr data-id="${g.id}">
+        <td>${escapeHtml(g.name)}</td>
+        <td><input type="number" min="1" max="10" ${g.positivity !== null ? `value="${g.positivity}"` : ''} data-field="positivity" placeholder="1-10"></td>
+        <td><input type="number" min="0" max="30" ${g.contact !== null ? `value="${g.contact}"` : ''} data-field="contact" placeholder="0-30"></td>
+        <td><input type="number" min="0" step="0.5" ${g.tenure !== null ? `value="${g.tenure}"` : ''} data-field="tenure" placeholder="years"></td>
+        <td><input type="number" min="1" max="10" ${g.representativeness !== null ? `value="${g.representativeness}"` : ''} data-field="representativeness" placeholder="1-10"></td>
+      </tr>
     `).join('');
 
-    // Toggle expand/collapse
-    list.querySelectorAll('.detail-item-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const item = header.closest('.detail-item');
-        item.classList.toggle('expanded');
-      });
-    });
-
     // Handle input changes
-    list.querySelectorAll('input').forEach(input => {
+    tbody.querySelectorAll('input').forEach(input => {
       input.addEventListener('change', () => {
-        const item = input.closest('.detail-item');
-        const groupId = item.dataset.id;
+        const row = input.closest('tr');
+        const groupId = row.dataset.id;
         const field = input.dataset.field;
-        const value = parseFloat(input.value) || 0;
+        const value = input.value ? parseFloat(input.value) : null;
 
         const group = state.groups.find(g => g.id === groupId);
         if (group) {
@@ -359,28 +325,95 @@
   function renderStep4() {
     const canvas = $('groups-canvas-4');
     const container = $('canvas-container-step4');
+    const tutorial = $('drag-tutorial-4');
+
+    // Initialize "Me" position if not set
+    if (state.meX === undefined || state.meX === null) {
+      state.meX = 400;
+      state.meY = 250;
+    }
 
     // Initialize positions if not set
-    const containerRect = container.getBoundingClientRect();
     state.groups.forEach((g, i) => {
       if (g.x === null || g.y === null) {
-        // Spread groups in a grid pattern
-        const cols = Math.ceil(Math.sqrt(state.groups.length));
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const spacing = 150;
-        g.x = 50 + col * spacing;
-        g.y = 50 + row * spacing;
+        // Spread groups around
+        const angle = (i / state.groups.length) * 2 * Math.PI;
+        const radius = 180;
+        g.x = state.meX + Math.cos(angle) * radius - 50;
+        g.y = state.meY + Math.sin(angle) * radius - 50;
       }
     });
 
     renderGroupCards(canvas, true);
+    renderMeBlock(canvas, true);
+
+    // Show tutorial once
+    if (!state.tutorialStep4Shown) {
+      tutorial.classList.remove('hidden');
+      tutorial.addEventListener('click', () => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep4Shown = true;
+        saveSession();
+      }, { once: true });
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep4Shown = true;
+        saveSession();
+      }, 3000);
+    } else {
+      tutorial.classList.add('hidden');
+    }
+  }
+
+  function renderMeBlock(canvas, draggable = false) {
+    renderMeBlockWithState(canvas, state, draggable);
+  }
+
+  function renderMeBlockWithState(canvas, stateObj, draggable = false) {
+    // Remove existing me block
+    const existing = canvas.querySelector('.me-block');
+    if (existing) existing.remove();
+
+    const meBlock = document.createElement('div');
+    meBlock.className = 'me-block' + (draggable ? '' : ' locked');
+    meBlock.textContent = 'Me';
+    meBlock.style.left = (stateObj.meX - 30) + 'px';
+    meBlock.style.top = (stateObj.meY - 30) + 'px';
+
+    if (draggable) {
+      meBlock.addEventListener('mousedown', e => startMeDrag(e, canvas));
+    }
+
+    canvas.appendChild(meBlock);
+  }
+
+  let meDragState = null;
+
+  function startMeDrag(e, canvas) {
+    const meBlock = canvas.querySelector('.me-block');
+    const rect = meBlock.getBoundingClientRect();
+    const containerRect = canvas.parentElement.getBoundingClientRect();
+
+    meDragState = {
+      canvas,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      containerRect
+    };
+
+    meBlock.classList.add('dragging');
   }
 
   function renderGroupCards(canvas, draggable = false) {
+    renderGroupCardsWithState(canvas, state, draggable);
+  }
+
+  function renderGroupCardsWithState(canvas, stateObj, draggable = false) {
     canvas.innerHTML = '';
 
-    state.groups.forEach(g => {
+    stateObj.groups.forEach(g => {
       const card = document.createElement('div');
       card.className = `group-card size-${g.importance || 'medium'}`;
       card.dataset.id = g.id;
@@ -408,15 +441,42 @@
   // ==================== STEP 5: CONNECTIONS ====================
   function renderStep5() {
     const canvas = $('groups-canvas-5');
+    const container = $('canvas-container-step5');
+    const tutorial = $('drag-tutorial-5');
+
     renderGroupCards(canvas, false);
+    renderMeBlock(canvas, false); // Me is locked in step 5
     renderConnections();
 
-    // Setup connection drawing
-    const container = $('canvas-container-step5');
-
+    // Setup connection drawing from groups
     canvas.querySelectorAll('.group-card').forEach(card => {
       card.addEventListener('mousedown', e => startDrawingConnection(e, card.dataset.id, container));
     });
+
+    // Setup connection drawing from Me block
+    const meBlock = canvas.querySelector('.me-block');
+    if (meBlock) {
+      meBlock.addEventListener('mousedown', e => startDrawingConnection(e, 'me', container));
+    }
+
+    // Show tutorial once
+    if (!state.tutorialStep5Shown) {
+      tutorial.classList.remove('hidden');
+      tutorial.addEventListener('click', () => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep5Shown = true;
+        saveSession();
+      }, { once: true });
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep5Shown = true;
+        saveSession();
+      }, 3000);
+    } else {
+      tutorial.classList.add('hidden');
+    }
   }
 
   function renderConnections() {
@@ -425,19 +485,36 @@
 
     svg.innerHTML = '';
 
+    // Clear old labels
+    const container = svg.parentElement;
+    container.querySelectorAll('.connection-label').forEach(l => l.remove());
+
     state.connections.forEach(conn => {
-      const fromGroup = state.groups.find(g => g.id === conn.from);
-      const toGroup = state.groups.find(g => g.id === conn.to);
-      if (!fromGroup || !toGroup) return;
+      let x1, y1, x2, y2;
 
-      const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-      const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-      if (!fromCard || !toCard) return;
+      // Handle Me as from
+      if (conn.from === 'me') {
+        x1 = state.meX;
+        y1 = state.meY;
+      } else {
+        const fromGroup = state.groups.find(g => g.id === conn.from);
+        const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+        if (!fromGroup || !fromCard) return;
+        x1 = fromGroup.x + fromCard.offsetWidth / 2;
+        y1 = fromGroup.y + fromCard.offsetHeight / 2;
+      }
 
-      const x1 = fromGroup.x + fromCard.offsetWidth / 2;
-      const y1 = fromGroup.y + fromCard.offsetHeight / 2;
-      const x2 = toGroup.x + toCard.offsetWidth / 2;
-      const y2 = toGroup.y + toCard.offsetHeight / 2;
+      // Handle Me as to
+      if (conn.to === 'me') {
+        x2 = state.meX;
+        y2 = state.meY;
+      } else {
+        const toGroup = state.groups.find(g => g.id === conn.to);
+        const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+        if (!toGroup || !toCard) return;
+        x2 = toGroup.x + toCard.offsetWidth / 2;
+        y2 = toGroup.y + toCard.offsetHeight / 2;
+      }
 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('class', `connection-line conn-${conn.type}`);
@@ -466,7 +543,6 @@
       labelDiv.style.transform = 'translate(-50%, -50%)';
       labelDiv.textContent = labelText;
 
-      const container = svg.parentElement;
       container.appendChild(labelDiv);
     });
   }
@@ -527,12 +603,19 @@
 
   function startDrawingConnection(e, groupId, container) {
     e.preventDefault();
-    const rect = container.getBoundingClientRect();
-    const group = state.groups.find(g => g.id === groupId);
-    const card = container.querySelector(`[data-id="${groupId}"]`);
+    e.stopPropagation();
 
-    const startX = group.x + card.offsetWidth / 2;
-    const startY = group.y + card.offsetHeight / 2;
+    let startX, startY;
+
+    if (groupId === 'me') {
+      startX = state.meX;
+      startY = state.meY;
+    } else {
+      const group = state.groups.find(g => g.id === groupId);
+      const card = container.querySelector(`[data-id="${groupId}"]`);
+      startX = group.x + card.offsetWidth / 2;
+      startY = group.y + card.offsetHeight / 2;
+    }
 
     drawingConnection = {
       fromId: groupId,
@@ -566,15 +649,23 @@
       return;
     }
 
+    // Normalize: if one is 'me', make sure 'me' is always 'from'
+    let fromId = drawingConnection.fromId;
+    let toId = toGroupId;
+    if (toId === 'me') {
+      fromId = 'me';
+      toId = drawingConnection.fromId;
+    }
+
     // Check if connection already exists
     const existing = state.connections.find(c =>
-      (c.from === drawingConnection.fromId && c.to === toGroupId) ||
-      (c.from === toGroupId && c.to === drawingConnection.fromId)
+      (c.from === fromId && c.to === toId) ||
+      (c.from === toId && c.to === fromId)
     );
 
     pendingConnection = {
-      from: drawingConnection.fromId,
-      to: toGroupId,
+      from: fromId,
+      to: toId,
       existing: !!existing
     };
 
@@ -584,11 +675,18 @@
   }
 
   function showConnectionModal() {
-    const fromGroup = state.groups.find(g => g.id === pendingConnection.from);
+    const fromIsMe = pendingConnection.from === 'me';
     const toGroup = state.groups.find(g => g.id === pendingConnection.to);
+    const fromGroup = fromIsMe ? null : state.groups.find(g => g.id === pendingConnection.from);
 
-    $('modal-from').textContent = fromGroup.name;
-    $('modal-to').textContent = toGroup.name;
+    let questionText;
+    if (fromIsMe) {
+      questionText = `How easy is it for you to belong to <strong>${toGroup.name}</strong>?`;
+    } else {
+      questionText = `How easy is it to be a member of both <strong>${fromGroup.name}</strong> and <strong>${toGroup.name}</strong> at the same time?`;
+    }
+
+    $('modal-question').innerHTML = questionText;
     $('remove-conn-btn').classList.toggle('hidden', !pendingConnection.existing);
     $('connection-modal').classList.remove('hidden');
   }
@@ -651,39 +749,91 @@
     // Clear old labels
     container.querySelectorAll('.connection-label').forEach(l => l.remove());
 
-    // Calculate bounds to fit all groups
-    let maxX = 0, maxY = 0;
+    // Calculate bounds to fit all content
+    let minX = state.meX - 30, minY = state.meY - 30;
+    let maxX = state.meX + 30, maxY = state.meY + 30;
+
     state.groups.forEach(g => {
       const size = g.importance === 'high' ? 130 : g.importance === 'low' ? 75 : 100;
+      if (g.x < minX) minX = g.x;
+      if (g.y < minY) minY = g.y;
       if (g.x + size > maxX) maxX = g.x + size;
       if (g.y + size > maxY) maxY = g.y + size;
     });
 
-    // Set canvas size to fit all groups
-    canvas.style.width = Math.max(maxX + 50, container.clientWidth) + 'px';
-    canvas.style.height = Math.max(maxY + 50, 500) + 'px';
-    svg.style.width = canvas.style.width;
-    svg.style.height = canvas.style.height;
+    const contentWidth = maxX - minX + 40;
+    const contentHeight = maxY - minY + 40;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
 
-    renderGroupCards(canvas, false);
+    // Calculate scale to fit
+    const scaleX = containerWidth / contentWidth;
+    const scaleY = containerHeight / contentHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+
+    // Apply transform
+    canvas.style.transform = `scale(${scale})`;
+    canvas.style.width = contentWidth + 'px';
+    canvas.style.height = contentHeight + 'px';
+    svg.style.transform = `scale(${scale})`;
+    svg.style.width = contentWidth + 'px';
+    svg.style.height = contentHeight + 'px';
+
+    // Offset to center
+    const offsetX = (containerWidth - contentWidth * scale) / 2;
+    const offsetY = (containerHeight - contentHeight * scale) / 2;
+    canvas.style.transformOrigin = 'top left';
+    canvas.style.left = offsetX + 'px';
+    canvas.style.top = offsetY + 'px';
+    svg.style.transformOrigin = 'top left';
+    svg.style.left = offsetX + 'px';
+    svg.style.top = offsetY + 'px';
+
+    // Adjust positions for rendering (offset by minX, minY)
+    const offsetState = {
+      ...state,
+      meX: state.meX - minX + 20,
+      meY: state.meY - minY + 20,
+      groups: state.groups.map(g => ({
+        ...g,
+        x: g.x - minX + 20,
+        y: g.y - minY + 20
+      }))
+    };
+
+    renderGroupCardsWithState(canvas, offsetState);
+    renderMeBlockWithState(canvas, offsetState);
 
     // Wait for cards to render before drawing connections
     requestAnimationFrame(() => {
       svg.innerHTML = '';
 
       state.connections.forEach(conn => {
-        const fromGroup = state.groups.find(g => g.id === conn.from);
-        const toGroup = state.groups.find(g => g.id === conn.to);
-        if (!fromGroup || !toGroup) return;
+        let x1, y1, x2, y2;
 
-        const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-        const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-        if (!fromCard || !toCard) return;
+        // Handle Me as from
+        if (conn.from === 'me') {
+          x1 = offsetState.meX;
+          y1 = offsetState.meY;
+        } else {
+          const fromGroup = offsetState.groups.find(g => g.id === conn.from);
+          const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+          if (!fromGroup || !fromCard) return;
+          x1 = fromGroup.x + fromCard.offsetWidth / 2;
+          y1 = fromGroup.y + fromCard.offsetHeight / 2;
+        }
 
-        const x1 = fromGroup.x + fromCard.offsetWidth / 2;
-        const y1 = fromGroup.y + fromCard.offsetHeight / 2;
-        const x2 = toGroup.x + toCard.offsetWidth / 2;
-        const y2 = toGroup.y + toCard.offsetHeight / 2;
+        // Handle Me as to
+        if (conn.to === 'me') {
+          x2 = offsetState.meX;
+          y2 = offsetState.meY;
+        } else {
+          const toGroup = offsetState.groups.find(g => g.id === conn.to);
+          const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+          if (!toGroup || !toCard) return;
+          x2 = toGroup.x + toCard.offsetWidth / 2;
+          y2 = toGroup.y + toCard.offsetHeight / 2;
+        }
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('class', `connection-line conn-${conn.type}`);
@@ -692,20 +842,31 @@
         svg.appendChild(path);
       });
 
-      // Add connection labels
+      // Add connection labels (scaled with transform, so use offset positions)
       state.connections.forEach(conn => {
-        const fromGroup = state.groups.find(g => g.id === conn.from);
-        const toGroup = state.groups.find(g => g.id === conn.to);
-        if (!fromGroup || !toGroup) return;
+        let x1, y1, x2, y2;
 
-        const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-        const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-        if (!fromCard || !toCard) return;
+        if (conn.from === 'me') {
+          x1 = offsetState.meX;
+          y1 = offsetState.meY;
+        } else {
+          const fromGroup = offsetState.groups.find(g => g.id === conn.from);
+          const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+          if (!fromGroup || !fromCard) return;
+          x1 = fromGroup.x + fromCard.offsetWidth / 2;
+          y1 = fromGroup.y + fromCard.offsetHeight / 2;
+        }
 
-        const x1 = fromGroup.x + fromCard.offsetWidth / 2;
-        const y1 = fromGroup.y + fromCard.offsetHeight / 2;
-        const x2 = toGroup.x + toCard.offsetWidth / 2;
-        const y2 = toGroup.y + toCard.offsetHeight / 2;
+        if (conn.to === 'me') {
+          x2 = offsetState.meX;
+          y2 = offsetState.meY;
+        } else {
+          const toGroup = offsetState.groups.find(g => g.id === conn.to);
+          const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+          if (!toGroup || !toCard) return;
+          x2 = toGroup.x + toCard.offsetWidth / 2;
+          y2 = toGroup.y + toCard.offsetHeight / 2;
+        }
 
         const midX = (x1 + x2) / 2;
         const midY = (y1 + y2) / 2;
@@ -774,6 +935,23 @@
       group.y = y;
     }
 
+    if (meDragState) {
+      const meBlock = meDragState.canvas.querySelector('.me-block');
+
+      let x = e.clientX - meDragState.containerRect.left - meDragState.offsetX + 30;
+      let y = e.clientY - meDragState.containerRect.top - meDragState.offsetY + 30;
+
+      // Constrain to container
+      x = Math.max(30, Math.min(x, meDragState.containerRect.width - 30));
+      y = Math.max(30, Math.min(y, meDragState.containerRect.height - 30));
+
+      meBlock.style.left = (x - 30) + 'px';
+      meBlock.style.top = (y - 30) + 'px';
+
+      state.meX = x;
+      state.meY = y;
+    }
+
     if (drawingConnection) {
       const rect = drawingConnection.container.getBoundingClientRect();
       drawingConnection.currentX = e.clientX - rect.left;
@@ -790,13 +968,23 @@
       saveSession();
     }
 
+    if (meDragState) {
+      const meBlock = meDragState.canvas.querySelector('.me-block');
+      meBlock.classList.remove('dragging');
+      meDragState = null;
+      saveSession();
+    }
+
     if (drawingConnection) {
-      // Check if we're over a group card
+      // Check if we're over a group card or Me block
       const target = document.elementFromPoint(e.clientX, e.clientY);
       const card = target?.closest('.group-card');
+      const meBlock = target?.closest('.me-block');
 
       if (card && card.dataset.id !== drawingConnection.fromId) {
         finishDrawingConnection(card.dataset.id);
+      } else if (meBlock && drawingConnection.fromId !== 'me') {
+        finishDrawingConnection('me');
       } else {
         drawingConnection = null;
         updateDrawingLine();
