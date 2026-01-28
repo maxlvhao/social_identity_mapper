@@ -171,7 +171,7 @@
     // Connection Modal
     $('cancel-conn-btn').addEventListener('click', closeConnectionModal);
     $('remove-conn-btn').addEventListener('click', removeConnection);
-    $$('.conn-option').forEach(btn => {
+    $$('.conn-option-compact').forEach(btn => {
       btn.addEventListener('click', () => setConnectionType(btn.dataset.type));
     });
     $('connection-modal').querySelector('.modal-backdrop').addEventListener('click', closeConnectionModal);

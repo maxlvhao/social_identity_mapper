@@ -566,9 +566,14 @@ body {
 }
 
 .canvas-container.final-preview {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  height: calc(100vh - 280px);
+  max-height: 400px;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   overflow: hidden;
+  aspect-ratio: 16 / 9;
 }
 
 .final-preview .groups-canvas {
@@ -903,6 +908,26 @@ body {
 
 .complete-header p {
   color: var(--text-light);
+}
+
+/* Qualtrics Reminder */
+.qualtrics-reminder {
+  background: #e8f4fd;
+  border: 1px solid #b3d9f7;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.qualtrics-reminder p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.qualtrics-reminder strong {
+  color: var(--primary);
 }
 
 /* Responsive */
