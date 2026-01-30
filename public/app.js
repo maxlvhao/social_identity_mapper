@@ -1,6 +1,58 @@
-// Social Identity Mapping App - Guided Flow
+// Social Identity Mapping App - Revised Flow (10 Steps)
 (function() {
   'use strict';
+
+  // ==================== CONSTANTS ====================
+  const IDENTITY_TYPES = [
+    { value: 'role-group', label: 'Role-based / Group-based' },
+    { value: 'personal-trait', label: 'Personal trait' },
+    { value: 'belief-value', label: 'Belief or value' },
+    { value: 'place-based', label: 'Place-based' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const COMMUNITY_SETTINGS = [
+    { value: 'online', label: 'Online' },
+    { value: 'offline', label: 'Offline' },
+    { value: 'hybrid', label: 'Hybrid' }
+  ];
+
+  const LIKERT_SCALE = [
+    { value: 1, label: 'Strongly Disagree' },
+    { value: 2, label: 'Disagree' },
+    { value: 3, label: 'Slightly Disagree' },
+    { value: 4, label: 'Neutral' },
+    { value: 5, label: 'Slightly Agree' },
+    { value: 6, label: 'Agree' },
+    { value: 7, label: 'Strongly Agree' }
+  ];
+
+  const BOUNDARY_MARKERS = [
+    { value: 'jargon', label: 'Jargon / lingo' },
+    { value: 'credentials', label: 'Credentials / insider knowledge' },
+    { value: 'sources', label: 'News sources / information sources' },
+    { value: 'rituals', label: 'Rituals / events' },
+    { value: 'humor', label: 'Humor / memes' },
+    { value: 'moral', label: 'Moral stances' },
+    { value: 'time', label: 'Time commitment' },
+    { value: 'technical', label: 'Technical skill' },
+    { value: 'location', label: 'Physical location' }
+  ];
+
+  const KEEP_UP_METHODS = [
+    { value: 'lurk', label: 'Lurk / read' },
+    { value: 'ask', label: 'Ask someone' },
+    { value: 'follow-accounts', label: 'Follow key accounts' },
+    { value: 'newsletters', label: 'Newsletters' },
+    { value: 'discord', label: 'Group chat / Discord' },
+    { value: 'official', label: 'Official channels' },
+    { value: 'campus', label: 'Campus media' },
+    { value: 'mainstream', label: 'Mainstream media' },
+    { value: 'podcasts', label: 'Podcasts / YouTube' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const TOTAL_STEPS = 10;
 
   // ==================== STATE ====================
   let state = {
@@ -8,14 +60,17 @@
     createdAt: null,
     updatedAt: null,
     currentStep: 0,
-    groups: [],      // { id, name, importance, positivity, contact, tenure, representativeness, x, y }
-    connections: []  // { from, to, type }
+    identities: [],
+    identityStrength: {},
+    communities: [],
+    belongingUncertainty: {},
+    communityParticipation: {},
+    informationNorms: {},
+    mapPositions: {}
   };
 
   let saveTimeout = null;
   let dragState = null;
-  let drawingConnection = null;
-  let pendingConnection = null;
 
   // ==================== DOM HELPERS ====================
   const $ = id => document.getElementById(id);
@@ -23,7 +78,6 @@
 
   // ==================== INITIALIZATION ====================
   function init() {
-    // Get session ID from URL
     const params = new URLSearchParams(window.location.search);
     state.sessionId = params.get('session') || generateId('sim_');
 
@@ -34,10 +88,7 @@
 
     $('session-display').textContent = state.sessionId;
 
-    // Load existing session
     loadSession();
-
-    // Bind all event listeners
     bindEvents();
   }
 
@@ -47,7 +98,6 @@
 
   // ==================== SESSION MANAGEMENT ====================
   async function loadSession() {
-    // Try localStorage first
     const localData = localStorage.getItem(`sim_${state.sessionId}`);
     if (localData) {
       try {
@@ -58,7 +108,6 @@
       }
     }
 
-    // Then try server
     try {
       const res = await fetch(`/api/session/${state.sessionId}`);
       if (res.ok) {
@@ -71,8 +120,7 @@
       console.log('Server unavailable, using local data');
     }
 
-    // If we have existing data, resume from last step
-    if (state.groups.length > 0 && state.currentStep > 0) {
+    if (state.identities.length > 0 && state.currentStep > 0) {
       goToStep(state.currentStep);
     }
   }
@@ -104,25 +152,18 @@
     state.currentStep = stepNum;
     saveSession();
 
-    // Hide all steps
     $$('.step-screen').forEach(s => s.classList.remove('active'));
 
-    // Show target step
     const targetId = stepNum === 0 ? 'step-landing' : `step-${stepNum}`;
     $(targetId).classList.add('active');
 
-    // Show/hide progress header
     $('progress-header').classList.toggle('hidden', stepNum === 0);
-
-    // Show/hide researcher link (only on landing page)
     $('researcher-link').classList.toggle('hidden', stepNum !== 0);
 
-    // Update progress bar
     if (stepNum > 0) {
-      const progress = ((stepNum - 1) / 5) * 100;
+      const progress = ((stepNum - 1) / (TOTAL_STEPS - 1)) * 100;
       $('progress-fill').style.width = progress + '%';
 
-      // Update step indicators
       $$('.progress-steps .step').forEach(s => {
         const sNum = parseInt(s.dataset.step);
         s.classList.toggle('active', sNum === stepNum);
@@ -130,83 +171,96 @@
       });
     }
 
-    // Render step-specific content
-    if (stepNum === 1) renderStep1();
-    if (stepNum === 2) renderStep2();
-    if (stepNum === 3) renderStep3();
-    if (stepNum === 4) renderStep4();
-    if (stepNum === 5) renderStep5();
-    if (stepNum === 6) renderStep6();
+    // Render step content
+    const renderFns = {
+      1: renderStep1,
+      2: renderStep2,
+      3: renderStep3,
+      4: renderStep4,
+      5: renderStep5,
+      6: renderStep6,
+      7: renderStep7,
+      8: renderStep8,
+      9: renderStep9,
+      10: renderStep10
+    };
+    if (renderFns[stepNum]) renderFns[stepNum]();
   }
 
   // ==================== EVENT BINDING ====================
   function bindEvents() {
-    // Landing
     $('start-btn').addEventListener('click', () => goToStep(1));
 
-    // Step 1: Identify Groups
-    $('add-group-btn').addEventListener('click', addGroup);
-    $('new-group-input').addEventListener('keypress', e => {
-      if (e.key === 'Enter') addGroup();
+    // Step 1: Add Identities
+    $('add-identity-btn').addEventListener('click', addIdentity);
+    $('new-identity-input').addEventListener('keypress', e => {
+      if (e.key === 'Enter') addIdentity();
     });
     $('step1-next').addEventListener('click', () => goToStep(2));
 
-    // Step 2: Importance
+    // Step 2: Rank Identities
     $('step2-back').addEventListener('click', () => goToStep(1));
     $('step2-next').addEventListener('click', () => goToStep(3));
 
-    // Step 3: Details
+    // Step 3: Identity Strength
     $('step3-back').addEventListener('click', () => goToStep(2));
     $('step3-next').addEventListener('click', () => goToStep(4));
 
-    // Step 4: Position
+    // Step 4: Add Communities
+    $('add-community-btn').addEventListener('click', addCommunity);
+    $('new-community-input').addEventListener('keypress', e => {
+      if (e.key === 'Enter') addCommunity();
+    });
     $('step4-back').addEventListener('click', () => goToStep(3));
     $('step4-next').addEventListener('click', () => goToStep(5));
 
-    // Step 5: Connections
+    // Step 5: Rank Communities
     $('step5-back').addEventListener('click', () => goToStep(4));
     $('step5-next').addEventListener('click', () => goToStep(6));
 
-    // Step 6: Complete
+    // Step 6: Belonging
+    $('step6-back').addEventListener('click', () => goToStep(5));
+    $('step6-next').addEventListener('click', () => goToStep(7));
+
+    // Step 7: Participation
+    $('step7-back').addEventListener('click', () => goToStep(6));
+    $('step7-next').addEventListener('click', () => goToStep(8));
+
+    // Step 8: Info Norms
+    $('step8-back').addEventListener('click', () => goToStep(7));
+    $('step8-next').addEventListener('click', () => goToStep(9));
+
+    // Step 9: Map
+    $('step9-back').addEventListener('click', () => goToStep(8));
+    $('step9-next').addEventListener('click', () => goToStep(10));
+
+    // Step 10: Complete
     $('download-btn').addEventListener('click', downloadData);
-    $('back-to-edit').addEventListener('click', () => goToStep(5));
+    $('back-to-edit').addEventListener('click', () => goToStep(9));
 
-    // Connection Modal
-    $('cancel-conn-btn').addEventListener('click', closeConnectionModal);
-    $('remove-conn-btn').addEventListener('click', removeConnection);
-    $$('.conn-option-compact').forEach(btn => {
-      btn.addEventListener('click', () => setConnectionType(btn.dataset.type));
-    });
-    $('connection-modal').querySelector('.modal-backdrop').addEventListener('click', closeConnectionModal);
-
-    // Global mouse events for dragging
+    // Global drag events
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }
 
-  // ==================== STEP 1: IDENTIFY GROUPS ====================
-  function addGroup() {
-    const input = $('new-group-input');
+  // ==================== STEP 1: ADD IDENTITIES ====================
+  function addIdentity() {
+    const input = $('new-identity-input');
     const name = input.value.trim();
 
     if (!name) return;
 
-    // Check for duplicates
-    if (state.groups.some(g => g.name.toLowerCase() === name.toLowerCase())) {
+    if (state.identities.some(i => i.name.toLowerCase() === name.toLowerCase())) {
       input.select();
       return;
     }
 
-    state.groups.push({
-      id: generateId('g_'),
+    state.identities.push({
+      id: generateId('i_'),
       name: name,
-      importance: null,  // No default - user must select
-      positivity: null,
-      contact: null,
-      tenure: null,
-      representativeness: null,
-      x: null,
-      y: null
+      type: null,
+      isTopThree: false,
+      topRank: null
     });
 
     input.value = '';
@@ -215,676 +269,837 @@
     saveSession();
   }
 
-  function removeGroup(groupId) {
-    state.groups = state.groups.filter(g => g.id !== groupId);
-    state.connections = state.connections.filter(c => c.from !== groupId && c.to !== groupId);
+  function removeIdentity(identityId) {
+    state.identities = state.identities.filter(i => i.id !== identityId);
+    delete state.identityStrength[identityId];
+    delete state.mapPositions[identityId];
     renderStep1();
     saveSession();
   }
 
   function renderStep1() {
-    const list = $('groups-list');
-    const count = $('groups-count');
-    const hint = $('groups-hint');
-    const nextBtn = $('step1-next');
+    const list = $('identities-list');
+    const count = $('identities-count');
+    const hint = $('identities-hint');
 
-    count.textContent = state.groups.length;
-    hint.classList.toggle('hidden', state.groups.length > 0);
-    nextBtn.disabled = state.groups.length === 0;
+    count.textContent = state.identities.length;
+    hint.classList.toggle('hidden', state.identities.length >= 3);
+    $('step1-next').disabled = state.identities.length < 3 || !state.identities.every(i => i.type !== null);
 
-    list.innerHTML = state.groups.map(g => `
-      <li>
-        <span class="group-name">${escapeHtml(g.name)}</span>
-        <button class="remove-btn" data-id="${g.id}" title="Remove">&times;</button>
-      </li>
-    `).join('');
-
-    list.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.addEventListener('click', () => removeGroup(btn.dataset.id));
-    });
-  }
-
-  // ==================== STEP 2: IMPORTANCE ====================
-  function renderStep2() {
-    const list = $('importance-list');
-
-    list.innerHTML = state.groups.map(g => `
-      <div class="importance-item" data-id="${g.id}">
-        <span class="group-name">${escapeHtml(g.name)}</span>
-        <div class="importance-buttons">
-          <button class="importance-btn high ${g.importance === 'high' ? 'selected' : ''}" data-value="high">
-            Very Important
-          </button>
-          <button class="importance-btn medium ${g.importance === 'medium' ? 'selected' : ''}" data-value="medium">
-            Moderate
-          </button>
-          <button class="importance-btn low ${g.importance === 'low' ? 'selected' : ''}" data-value="low">
-            Less Important
-          </button>
-        </div>
+    list.innerHTML = state.identities.map(i => `
+      <div class="identity-item" data-id="${i.id}">
+        <span class="identity-name">${escapeHtml(i.name)}</span>
+        <select class="type-select" data-id="${i.id}">
+          <option value="">Select type...</option>
+          ${IDENTITY_TYPES.map(t => `<option value="${t.value}" ${i.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+        </select>
+        <button class="remove-btn" data-id="${i.id}" title="Remove">&times;</button>
       </div>
     `).join('');
 
-    list.querySelectorAll('.importance-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = btn.closest('.importance-item');
-        const groupId = item.dataset.id;
-        const value = btn.dataset.value;
-
-        // Update state
-        const group = state.groups.find(g => g.id === groupId);
-        if (group) group.importance = value;
-
-        // Update UI
-        item.querySelectorAll('.importance-btn').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-
-        updateStep2NextButton();
-        saveSession();
-      });
+    // Bind events
+    list.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => removeIdentity(btn.dataset.id));
     });
 
-    updateStep2NextButton();
-  }
-
-  function updateStep2NextButton() {
-    const allRated = state.groups.every(g => g.importance !== null);
-    $('step2-next').disabled = !allRated;
-    $('importance-hint').classList.toggle('hidden', allRated);
-  }
-
-  // ==================== STEP 3: DETAILS ====================
-  function renderStep3() {
-    const tbody = $('details-tbody');
-
-    tbody.innerHTML = state.groups.map(g => `
-      <tr data-id="${g.id}">
-        <td>${escapeHtml(g.name)}</td>
-        <td><input type="number" min="1" max="10" ${g.positivity !== null ? `value="${g.positivity}"` : ''} data-field="positivity" placeholder="1-10"></td>
-        <td><input type="number" min="0" max="30" ${g.contact !== null ? `value="${g.contact}"` : ''} data-field="contact" placeholder="0-30"></td>
-        <td><input type="number" min="0" step="0.5" ${g.tenure !== null ? `value="${g.tenure}"` : ''} data-field="tenure" placeholder="years"></td>
-        <td><input type="number" min="1" max="10" ${g.representativeness !== null ? `value="${g.representativeness}"` : ''} data-field="representativeness" placeholder="1-10"></td>
-      </tr>
-    `).join('');
-
-    // Handle input changes
-    tbody.querySelectorAll('input').forEach(input => {
-      input.addEventListener('change', () => {
-        const row = input.closest('tr');
-        const groupId = row.dataset.id;
-        const field = input.dataset.field;
-        const value = input.value ? parseFloat(input.value) : null;
-
-        const group = state.groups.find(g => g.id === groupId);
-        if (group) {
-          group[field] = value;
+    list.querySelectorAll('.type-select').forEach(select => {
+      select.addEventListener('change', () => {
+        const identity = state.identities.find(i => i.id === select.dataset.id);
+        if (identity) {
+          identity.type = select.value || null;
+          renderStep1();
           saveSession();
         }
       });
     });
   }
 
-  // ==================== STEP 4: POSITION GROUPS ====================
-  function renderStep4() {
-    const canvas = $('groups-canvas-4');
-    const container = $('canvas-container-step4');
-    const tutorial = $('drag-tutorial-4');
+  // ==================== STEP 2: RANK IDENTITIES ====================
+  function renderStep2() {
+    const source = $('identity-rank-source');
+    const target = $('identity-rank-target');
 
-    // Initialize "Me" position if not set
-    if (state.meX === undefined || state.meX === null) {
-      state.meX = 400;
-      state.meY = 250;
-    }
+    // Render source items (non-ranked identities)
+    source.innerHTML = state.identities.filter(i => !i.isTopThree).map(i => `
+      <div class="rank-item" data-id="${i.id}" draggable="true">
+        ${escapeHtml(i.name)}
+      </div>
+    `).join('');
 
-    // Initialize positions if not set
-    state.groups.forEach((g, i) => {
-      if (g.x === null || g.y === null) {
-        // Spread groups around
-        const angle = (i / state.groups.length) * 2 * Math.PI;
-        const radius = 180;
-        g.x = state.meX + Math.cos(angle) * radius - 50;
-        g.y = state.meY + Math.sin(angle) * radius - 50;
+    // Render target slots
+    const slots = target.querySelectorAll('.rank-slot');
+    slots.forEach(slot => {
+      const slotNum = parseInt(slot.dataset.slot);
+      const identity = state.identities.find(i => i.topRank === slotNum);
+
+      if (identity) {
+        slot.innerHTML = `<span class="slot-content">${escapeHtml(identity.name)} <button class="slot-remove" data-id="${identity.id}">&times;</button></span>`;
+        slot.classList.add('filled');
+      } else {
+        slot.innerHTML = `<span class="slot-number">${slotNum}</span>`;
+        slot.classList.remove('filled');
       }
     });
 
-    renderGroupCards(canvas, true);
-    renderMeBlock(canvas, true);
+    // Setup drag events for source items
+    source.querySelectorAll('.rank-item').forEach(item => {
+      item.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', item.dataset.id);
+        item.classList.add('dragging');
+      });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    });
 
-    // Show tutorial once
-    if (!state.tutorialStep4Shown) {
-      tutorial.classList.remove('hidden');
-      tutorial.addEventListener('click', () => {
-        tutorial.classList.add('hidden');
-        state.tutorialStep4Shown = true;
-        saveSession();
-      }, { once: true });
+    // Setup drop events for slots
+    slots.forEach(slot => {
+      slot.addEventListener('dragover', e => {
+        e.preventDefault();
+        slot.classList.add('drag-over');
+      });
+      slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+      slot.addEventListener('drop', e => {
+        e.preventDefault();
+        slot.classList.remove('drag-over');
+        handleIdentityRank(e.dataTransfer.getData('text/plain'), parseInt(slot.dataset.slot));
+      });
+    });
 
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        tutorial.classList.add('hidden');
-        state.tutorialStep4Shown = true;
-        saveSession();
-      }, 3000);
-    } else {
-      tutorial.classList.add('hidden');
+    // Remove buttons
+    target.querySelectorAll('.slot-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const identity = state.identities.find(i => i.id === btn.dataset.id);
+        if (identity) {
+          identity.isTopThree = false;
+          identity.topRank = null;
+          renderStep2();
+          saveSession();
+        }
+      });
+    });
+
+    updateStep2NextButton();
+  }
+
+  function handleIdentityRank(identityId, slotNum) {
+    // Clear existing identity in this slot
+    state.identities.forEach(i => {
+      if (i.topRank === slotNum) {
+        i.isTopThree = false;
+        i.topRank = null;
+      }
+    });
+
+    // Set new rank
+    const identity = state.identities.find(i => i.id === identityId);
+    if (identity) {
+      // Clear old slot if any
+      identity.isTopThree = true;
+      identity.topRank = slotNum;
     }
+
+    renderStep2();
+    saveSession();
   }
 
-  function renderMeBlock(canvas, draggable = false) {
-    renderMeBlockWithState(canvas, state, draggable);
+  function updateStep2NextButton() {
+    const topThree = state.identities.filter(i => i.isTopThree);
+    $('step2-next').disabled = topThree.length < 3;
+    $('identity-rank-hint').classList.toggle('hidden', topThree.length >= 3);
   }
 
-  function renderMeBlockWithState(canvas, stateObj, draggable = false) {
-    // Remove existing me block
-    const existing = canvas.querySelector('.me-block');
-    if (existing) existing.remove();
+  // ==================== STEP 3: IDENTITY STRENGTH ====================
+  function renderStep3() {
+    const container = $('identity-strength-container');
+    const topIdentities = state.identities.filter(i => i.isTopThree).sort((a, b) => a.topRank - b.topRank);
 
-    const meBlock = document.createElement('div');
-    meBlock.className = 'me-block' + (draggable ? '' : ' locked');
-    meBlock.textContent = 'Me';
-    meBlock.style.left = (stateObj.meX - 30) + 'px';
-    meBlock.style.top = (stateObj.meY - 30) + 'px';
+    container.innerHTML = topIdentities.map(identity => {
+      const strength = state.identityStrength[identity.id] || {};
 
-    if (draggable) {
-      meBlock.addEventListener('mousedown', e => startMeDrag(e, canvas));
+      return `
+        <div class="strength-card">
+          <h3>${escapeHtml(identity.name)}</h3>
+
+          <div class="slider-group">
+            <label>Centrality: "This identity is central to who I am"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${strength.centrality || 4}"
+                     data-id="${identity.id}" data-field="centrality">
+              <span>7</span>
+              <span class="slider-value">${strength.centrality || 4}</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <label>Solidarity/Belonging: "I feel connected to others who share this identity"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${strength.solidarity || 4}"
+                     data-id="${identity.id}" data-field="solidarity">
+              <span>7</span>
+              <span class="slider-value">${strength.solidarity || 4}</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <label>Satisfaction/Positive affect: "I feel good about having this identity"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${strength.satisfaction || 4}"
+                     data-id="${identity.id}" data-field="satisfaction">
+              <span>7</span>
+              <span class="slider-value">${strength.satisfaction || 4}</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <label>Stability: "This identity feels stable over time (not easily shaken)"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${strength.stability || 4}"
+                     data-id="${identity.id}" data-field="stability">
+              <span>7</span>
+              <span class="slider-value">${strength.stability || 4}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('input[type="range"]').forEach(input => {
+      const updateValue = () => {
+        input.parentElement.querySelector('.slider-value').textContent = input.value;
+        const id = input.dataset.id;
+        const field = input.dataset.field;
+        if (!state.identityStrength[id]) state.identityStrength[id] = {};
+        state.identityStrength[id][field] = parseInt(input.value);
+        saveSession();
+      };
+      input.addEventListener('input', updateValue);
+      updateValue();
+    });
+  }
+
+  // ==================== STEP 4: ADD COMMUNITIES ====================
+  function addCommunity() {
+    const input = $('new-community-input');
+    const name = input.value.trim();
+
+    if (!name) return;
+
+    if (state.communities.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+      input.select();
+      return;
     }
 
-    canvas.appendChild(meBlock);
+    state.communities.push({
+      id: generateId('c_'),
+      name: name,
+      setting: null,
+      isTopThree: false,
+      topRank: null
+    });
+
+    input.value = '';
+    input.focus();
+    renderStep4();
+    saveSession();
   }
 
-  let meDragState = null;
+  function removeCommunity(communityId) {
+    state.communities = state.communities.filter(c => c.id !== communityId);
+    delete state.belongingUncertainty[communityId];
+    delete state.communityParticipation[communityId];
+    delete state.informationNorms[communityId];
+    delete state.mapPositions[communityId];
+    renderStep4();
+    saveSession();
+  }
 
-  function startMeDrag(e, canvas) {
-    const meBlock = canvas.querySelector('.me-block');
-    const rect = meBlock.getBoundingClientRect();
-    const containerRect = canvas.parentElement.getBoundingClientRect();
+  function renderStep4() {
+    const list = $('communities-list');
+    const count = $('communities-count');
+    const hint = $('communities-hint');
 
-    meDragState = {
+    count.textContent = state.communities.length;
+    hint.classList.toggle('hidden', state.communities.length >= 3);
+    $('step4-next').disabled = state.communities.length < 3 || !state.communities.every(c => c.setting !== null);
+
+    list.innerHTML = state.communities.map(c => `
+      <div class="community-item" data-id="${c.id}">
+        <span class="community-name">${escapeHtml(c.name)}</span>
+        <select class="setting-select" data-id="${c.id}">
+          <option value="">Select setting...</option>
+          ${COMMUNITY_SETTINGS.map(s => `<option value="${s.value}" ${c.setting === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
+        </select>
+        <button class="remove-btn" data-id="${c.id}" title="Remove">&times;</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => removeCommunity(btn.dataset.id));
+    });
+
+    list.querySelectorAll('.setting-select').forEach(select => {
+      select.addEventListener('change', () => {
+        const community = state.communities.find(c => c.id === select.dataset.id);
+        if (community) {
+          community.setting = select.value || null;
+          renderStep4();
+          saveSession();
+        }
+      });
+    });
+  }
+
+  // ==================== STEP 5: RANK COMMUNITIES ====================
+  function renderStep5() {
+    const source = $('community-rank-source');
+    const target = $('community-rank-target');
+
+    source.innerHTML = state.communities.filter(c => !c.isTopThree).map(c => `
+      <div class="rank-item community" data-id="${c.id}" draggable="true">
+        ${escapeHtml(c.name)}
+      </div>
+    `).join('');
+
+    const slots = target.querySelectorAll('.rank-slot');
+    slots.forEach(slot => {
+      const slotNum = parseInt(slot.dataset.slot);
+      const community = state.communities.find(c => c.topRank === slotNum);
+
+      if (community) {
+        slot.innerHTML = `<span class="slot-content">${escapeHtml(community.name)} <button class="slot-remove" data-id="${community.id}">&times;</button></span>`;
+        slot.classList.add('filled');
+      } else {
+        slot.innerHTML = `<span class="slot-number">${slotNum}</span>`;
+        slot.classList.remove('filled');
+      }
+    });
+
+    source.querySelectorAll('.rank-item').forEach(item => {
+      item.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', item.dataset.id);
+        item.classList.add('dragging');
+      });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    });
+
+    slots.forEach(slot => {
+      slot.addEventListener('dragover', e => {
+        e.preventDefault();
+        slot.classList.add('drag-over');
+      });
+      slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+      slot.addEventListener('drop', e => {
+        e.preventDefault();
+        slot.classList.remove('drag-over');
+        handleCommunityRank(e.dataTransfer.getData('text/plain'), parseInt(slot.dataset.slot));
+      });
+    });
+
+    target.querySelectorAll('.slot-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const community = state.communities.find(c => c.id === btn.dataset.id);
+        if (community) {
+          community.isTopThree = false;
+          community.topRank = null;
+          renderStep5();
+          saveSession();
+        }
+      });
+    });
+
+    updateStep5NextButton();
+  }
+
+  function handleCommunityRank(communityId, slotNum) {
+    state.communities.forEach(c => {
+      if (c.topRank === slotNum) {
+        c.isTopThree = false;
+        c.topRank = null;
+      }
+    });
+
+    const community = state.communities.find(c => c.id === communityId);
+    if (community) {
+      community.isTopThree = true;
+      community.topRank = slotNum;
+    }
+
+    renderStep5();
+    saveSession();
+  }
+
+  function updateStep5NextButton() {
+    const topThree = state.communities.filter(c => c.isTopThree);
+    $('step5-next').disabled = topThree.length < 3;
+    $('community-rank-hint').classList.toggle('hidden', topThree.length >= 3);
+  }
+
+  // ==================== STEP 6: BELONGING UNCERTAINTY ====================
+  function renderStep6() {
+    const container = $('belonging-container');
+    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
+
+    container.innerHTML = topCommunities.map(community => {
+      const belonging = state.belongingUncertainty[community.id] || {};
+
+      return `
+        <div class="belonging-card">
+          <h3>${escapeHtml(community.name)}</h3>
+
+          <div class="likert-group">
+            <label>Sometimes I feel that I belong at <strong>${escapeHtml(community.name)}</strong>, and sometimes I feel that I don't belong.</label>
+            <div class="likert-scale">
+              ${LIKERT_SCALE.map(opt => `
+                <label class="likert-option">
+                  <input type="radio" name="belong-sometimes-${community.id}" value="${opt.value}"
+                         ${belonging.belongSometimes === opt.value ? 'checked' : ''}
+                         data-id="${community.id}" data-field="belongSometimes">
+                  <span class="likert-label">${opt.value}</span>
+                  <span class="likert-text">${opt.label}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="likert-group">
+            <label>When something bad happens, I feel that maybe I don't belong at <strong>${escapeHtml(community.name)}</strong>.</label>
+            <div class="likert-scale">
+              ${LIKERT_SCALE.map(opt => `
+                <label class="likert-option">
+                  <input type="radio" name="belong-bad-${community.id}" value="${opt.value}"
+                         ${belonging.belongBad === opt.value ? 'checked' : ''}
+                         data-id="${community.id}" data-field="belongBad">
+                  <span class="likert-label">${opt.value}</span>
+                  <span class="likert-text">${opt.label}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="likert-group">
+            <label>When something good happens, I feel that I really belong at <strong>${escapeHtml(community.name)}</strong>.</label>
+            <div class="likert-scale">
+              ${LIKERT_SCALE.map(opt => `
+                <label class="likert-option">
+                  <input type="radio" name="belong-good-${community.id}" value="${opt.value}"
+                         ${belonging.belongGood === opt.value ? 'checked' : ''}
+                         data-id="${community.id}" data-field="belongGood">
+                  <span class="likert-label">${opt.value}</span>
+                  <span class="likert-text">${opt.label}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('input[type="radio"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const id = input.dataset.id;
+        const field = input.dataset.field;
+        if (!state.belongingUncertainty[id]) state.belongingUncertainty[id] = {};
+        state.belongingUncertainty[id][field] = parseInt(input.value);
+        saveSession();
+      });
+    });
+  }
+
+  // ==================== STEP 7: COMMUNITY PARTICIPATION ====================
+  function renderStep7() {
+    const container = $('participation-container');
+    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
+
+    container.innerHTML = topCommunities.map(community => {
+      const participation = state.communityParticipation[community.id] || { boundaryMarkers: [] };
+
+      return `
+        <div class="participation-card">
+          <h3>${escapeHtml(community.name)}</h3>
+
+          <div class="slider-group">
+            <label>How hard is it for a newcomer to legitimately participate in this community?</label>
+            <div class="slider-row">
+              <span>1 (Easy)</span>
+              <input type="range" min="1" max="7" value="${participation.difficulty || 4}"
+                     data-id="${community.id}" data-field="difficulty">
+              <span>7 (Hard)</span>
+              <span class="slider-value">${participation.difficulty || 4}</span>
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <label>What differentiates people in this community (in-group) from outsiders? (Select all that apply)</label>
+            <div class="checkbox-grid">
+              ${BOUNDARY_MARKERS.map(marker => `
+                <label class="checkbox-option">
+                  <input type="checkbox" value="${marker.value}"
+                         ${participation.boundaryMarkers && participation.boundaryMarkers.includes(marker.value) ? 'checked' : ''}
+                         data-id="${community.id}" data-field="boundaryMarkers">
+                  ${marker.label}
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('input[type="range"]').forEach(input => {
+      const updateValue = () => {
+        input.parentElement.querySelector('.slider-value').textContent = input.value;
+        const id = input.dataset.id;
+        if (!state.communityParticipation[id]) state.communityParticipation[id] = { boundaryMarkers: [] };
+        state.communityParticipation[id].difficulty = parseInt(input.value);
+        saveSession();
+      };
+      input.addEventListener('input', updateValue);
+    });
+
+    container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const id = input.dataset.id;
+        if (!state.communityParticipation[id]) state.communityParticipation[id] = { boundaryMarkers: [] };
+        if (!state.communityParticipation[id].boundaryMarkers) state.communityParticipation[id].boundaryMarkers = [];
+
+        if (input.checked) {
+          if (!state.communityParticipation[id].boundaryMarkers.includes(input.value)) {
+            state.communityParticipation[id].boundaryMarkers.push(input.value);
+          }
+        } else {
+          state.communityParticipation[id].boundaryMarkers = state.communityParticipation[id].boundaryMarkers.filter(v => v !== input.value);
+        }
+        saveSession();
+      });
+    });
+  }
+
+  // ==================== STEP 8: INFORMATION NORMS ====================
+  function renderStep8() {
+    const container = $('info-norms-container');
+    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
+
+    container.innerHTML = topCommunities.map(community => {
+      const norms = state.informationNorms[community.id] || { keepUpMethods: [] };
+
+      return `
+        <div class="info-norms-card">
+          <h3>${escapeHtml(community.name)}</h3>
+
+          <div class="slider-group">
+            <label>"To be taken seriously here, you need to know the community's language (terms/memes/ways of speaking)"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${norms.languageNeeded || 4}"
+                     data-id="${community.id}" data-field="languageNeeded">
+              <span>7</span>
+              <span class="slider-value">${norms.languageNeeded || 4}</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <label>"I've put effort into learning that language"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${norms.effortLearning || 4}"
+                     data-id="${community.id}" data-field="effortLearning">
+              <span>7</span>
+              <span class="slider-value">${norms.effortLearning || 4}</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <label>"There are sources (news/accounts/sites) you're expected to follow to 'get it'"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${norms.sourcesExpected || 4}"
+                     data-id="${community.id}" data-field="sourcesExpected">
+              <span>7</span>
+              <span class="slider-value">${norms.sourcesExpected || 4}</span>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <label>"Using the 'wrong' sources or framing gets judged here"</label>
+            <div class="slider-row">
+              <span>1</span>
+              <input type="range" min="1" max="7" value="${norms.wrongSourcesJudged || 4}"
+                     data-id="${community.id}" data-field="wrongSourcesJudged">
+              <span>7</span>
+              <span class="slider-value">${norms.wrongSourcesJudged || 4}</span>
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <label>"How do you usually keep up?" (Choose up to 3)</label>
+            <div class="checkbox-grid">
+              ${KEEP_UP_METHODS.map(method => `
+                <label class="checkbox-option">
+                  <input type="checkbox" value="${method.value}"
+                         ${norms.keepUpMethods && norms.keepUpMethods.includes(method.value) ? 'checked' : ''}
+                         data-id="${community.id}" data-field="keepUpMethods">
+                  ${method.label}
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="text-group">
+            <label>Name up to 3 sources/places/people that help you "stay fluent" in this community:</label>
+            <textarea data-id="${community.id}" data-field="fluencySources"
+                      placeholder="e.g., @username, subreddit, podcast name...">${norms.fluencySources || ''}</textarea>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('input[type="range"]').forEach(input => {
+      const updateValue = () => {
+        input.parentElement.querySelector('.slider-value').textContent = input.value;
+        const id = input.dataset.id;
+        const field = input.dataset.field;
+        if (!state.informationNorms[id]) state.informationNorms[id] = { keepUpMethods: [] };
+        state.informationNorms[id][field] = parseInt(input.value);
+        saveSession();
+      };
+      input.addEventListener('input', updateValue);
+    });
+
+    container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const id = input.dataset.id;
+        if (!state.informationNorms[id]) state.informationNorms[id] = { keepUpMethods: [] };
+        if (!state.informationNorms[id].keepUpMethods) state.informationNorms[id].keepUpMethods = [];
+
+        if (input.checked) {
+          if (state.informationNorms[id].keepUpMethods.length < 3) {
+            state.informationNorms[id].keepUpMethods.push(input.value);
+          } else {
+            input.checked = false;
+            return;
+          }
+        } else {
+          state.informationNorms[id].keepUpMethods = state.informationNorms[id].keepUpMethods.filter(v => v !== input.value);
+        }
+        saveSession();
+      });
+    });
+
+    container.querySelectorAll('textarea').forEach(textarea => {
+      textarea.addEventListener('input', () => {
+        const id = textarea.dataset.id;
+        if (!state.informationNorms[id]) state.informationNorms[id] = { keepUpMethods: [] };
+        state.informationNorms[id].fluencySources = textarea.value;
+        saveSession();
+      });
+    });
+  }
+
+  // ==================== STEP 9: COORDINATE MAP ====================
+  // Note: Positions are stored as percentages (0-1) to ensure consistency across different container sizes
+
+  function renderStep9() {
+    const canvas = $('coordinate-canvas');
+    const container = $('canvas-container-step9');
+
+    canvas.innerHTML = '';
+
+    const topIdentities = state.identities.filter(i => i.isTopThree).sort((a, b) => a.topRank - b.topRank);
+    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
+
+    // Get container dimensions
+    const containerRect = container.getBoundingClientRect();
+
+    // Helper to convert old pixel positions to percentages if needed
+    function normalizePosition(pos, containerWidth, containerHeight) {
+      // If values are > 1, they're old pixel values - convert to percentages
+      if (pos.x > 1 || pos.y > 1) {
+        return {
+          x: Math.min(1, Math.max(0, pos.x / 800)), // Assume old container was ~800px wide
+          y: Math.min(1, Math.max(0, pos.y / 600))  // Assume old container was ~600px tall
+        };
+      }
+      return pos;
+    }
+
+    // Initialize positions if not set (as percentages 0-1)
+    topIdentities.forEach((identity, i) => {
+      if (!state.mapPositions[identity.id]) {
+        const angle = (i / 3) * Math.PI - Math.PI / 2;
+        state.mapPositions[identity.id] = {
+          x: 0.5 + Math.cos(angle) * 0.15,
+          y: 0.5 + Math.sin(angle) * 0.15
+        };
+      } else {
+        // Normalize existing positions
+        state.mapPositions[identity.id] = normalizePosition(state.mapPositions[identity.id], containerRect.width, containerRect.height);
+      }
+    });
+
+    topCommunities.forEach((community, i) => {
+      if (!state.mapPositions[community.id]) {
+        const angle = ((i + 3) / 6) * 2 * Math.PI + Math.PI / 6;
+        state.mapPositions[community.id] = {
+          x: 0.5 + Math.cos(angle) * 0.2,
+          y: 0.5 + Math.sin(angle) * 0.2
+        };
+      } else {
+        // Normalize existing positions
+        state.mapPositions[community.id] = normalizePosition(state.mapPositions[community.id], containerRect.width, containerRect.height);
+      }
+    });
+
+    // Render identity markers (dots)
+    topIdentities.forEach(identity => {
+      const pos = state.mapPositions[identity.id];
+      const marker = document.createElement('div');
+      marker.className = 'map-marker identity-marker';
+      marker.dataset.id = identity.id;
+      marker.style.left = (pos.x * containerRect.width) + 'px';
+      marker.style.top = (pos.y * containerRect.height) + 'px';
+      marker.innerHTML = `
+        <span class="marker-label">${escapeHtml(identity.name)}</span>
+        <span class="marker-dot"></span>
+      `;
+
+      marker.addEventListener('mousedown', e => startMapDrag(e, identity.id, canvas, container));
+      canvas.appendChild(marker);
+    });
+
+    // Render community markers (squares)
+    topCommunities.forEach(community => {
+      const pos = state.mapPositions[community.id];
+      const marker = document.createElement('div');
+      marker.className = 'map-marker community-marker';
+      marker.dataset.id = community.id;
+      marker.style.left = (pos.x * containerRect.width) + 'px';
+      marker.style.top = (pos.y * containerRect.height) + 'px';
+      marker.innerHTML = `
+        <span class="marker-label">${escapeHtml(community.name)}</span>
+        <span class="marker-square"></span>
+      `;
+
+      marker.addEventListener('mousedown', e => startMapDrag(e, community.id, canvas, container));
+      canvas.appendChild(marker);
+    });
+
+    saveSession();
+  }
+
+  function startMapDrag(e, itemId, canvas, container) {
+    const marker = canvas.querySelector(`[data-id="${itemId}"]`);
+    const rect = marker.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    dragState = {
+      itemId,
       canvas,
+      container,
       offsetX: e.clientX - rect.left,
       offsetY: e.clientY - rect.top,
       containerRect
     };
 
-    meBlock.classList.add('dragging');
+    marker.classList.add('dragging');
   }
 
-  function renderGroupCards(canvas, draggable = false) {
-    renderGroupCardsWithState(canvas, state, draggable);
+  function handleMouseMove(e) {
+    if (!dragState) return;
+
+    const marker = dragState.canvas.querySelector(`[data-id="${dragState.itemId}"]`);
+    if (!marker) return;
+
+    // Get fresh container rect in case of resize
+    const containerRect = dragState.container.getBoundingClientRect();
+
+    let pixelX = e.clientX - containerRect.left - dragState.offsetX;
+    let pixelY = e.clientY - containerRect.top - dragState.offsetY;
+
+    // Constrain to container
+    pixelX = Math.max(0, Math.min(pixelX, containerRect.width - 20));
+    pixelY = Math.max(20, Math.min(pixelY, containerRect.height));
+
+    marker.style.left = pixelX + 'px';
+    marker.style.top = pixelY + 'px';
+
+    // Store as percentages (0-1)
+    state.mapPositions[dragState.itemId] = {
+      x: pixelX / containerRect.width,
+      y: pixelY / containerRect.height
+    };
   }
 
-  function renderGroupCardsWithState(canvas, stateObj, draggable = false) {
+  function handleMouseUp() {
+    if (dragState) {
+      const marker = dragState.canvas.querySelector(`[data-id="${dragState.itemId}"]`);
+      if (marker) marker.classList.remove('dragging');
+      dragState = null;
+      saveSession();
+    }
+  }
+
+  // ==================== STEP 10: COMPLETE ====================
+  function renderStep10() {
+    const topIdentities = state.identities.filter(i => i.isTopThree);
+    const topCommunities = state.communities.filter(c => c.isTopThree);
+
+    $('final-identities').textContent = topIdentities.length;
+    $('final-communities').textContent = topCommunities.length;
+
+    const canvas = $('final-coordinate-canvas');
+    const container = $('final-canvas-container');
     canvas.innerHTML = '';
 
-    stateObj.groups.forEach(g => {
-      const card = document.createElement('div');
-      card.className = `group-card size-${g.importance || 'medium'}`;
-      card.dataset.id = g.id;
-      card.style.left = g.x + 'px';
-      card.style.top = g.y + 'px';
+    // Get container dimensions for converting percentages to pixels
+    const containerRect = container.getBoundingClientRect();
 
-      const displayVal = v => v !== null && v !== undefined ? v : '?';
+    // Helper to convert old pixel positions to percentages if needed
+    function normalizePosition(pos) {
+      if (!pos) return null;
+      if (pos.x > 1 || pos.y > 1) {
+        return {
+          x: Math.min(1, Math.max(0, pos.x / 800)),
+          y: Math.min(1, Math.max(0, pos.y / 600))
+        };
+      }
+      return pos;
+    }
 
-      card.innerHTML = `
-        <span class="card-corner tl">${displayVal(g.positivity)}</span>
-        <span class="card-corner tr">${displayVal(g.contact)}</span>
-        <span class="card-name">${escapeHtml(g.name)}</span>
-        <span class="card-corner bl">${displayVal(g.tenure)}</span>
-        <span class="card-corner br">${displayVal(g.representativeness)}</span>
+    // Render identity markers
+    topIdentities.forEach(identity => {
+      const pos = normalizePosition(state.mapPositions[identity.id]);
+      if (!pos) return;
+
+      const marker = document.createElement('div');
+      marker.className = 'map-marker identity-marker';
+      marker.style.left = (pos.x * containerRect.width) + 'px';
+      marker.style.top = (pos.y * containerRect.height) + 'px';
+      marker.innerHTML = `
+        <span class="marker-label">${escapeHtml(identity.name)}</span>
+        <span class="marker-dot"></span>
       `;
-
-      if (draggable) {
-        card.addEventListener('mousedown', e => startDrag(e, g.id, canvas));
-      }
-
-      canvas.appendChild(card);
-    });
-  }
-
-  // ==================== STEP 5: CONNECTIONS ====================
-  function renderStep5() {
-    const canvas = $('groups-canvas-5');
-    const container = $('canvas-container-step5');
-    const tutorial = $('drag-tutorial-5');
-
-    renderGroupCards(canvas, false);
-    renderMeBlock(canvas, false); // Me is locked in step 5
-    renderConnections();
-
-    // Setup connection drawing from groups
-    canvas.querySelectorAll('.group-card').forEach(card => {
-      card.addEventListener('mousedown', e => startDrawingConnection(e, card.dataset.id, container));
+      canvas.appendChild(marker);
     });
 
-    // Setup connection drawing from Me block
-    const meBlock = canvas.querySelector('.me-block');
-    if (meBlock) {
-      meBlock.addEventListener('mousedown', e => startDrawingConnection(e, 'me', container));
-    }
-
-    // Show tutorial once
-    if (!state.tutorialStep5Shown) {
-      tutorial.classList.remove('hidden');
-      tutorial.addEventListener('click', () => {
-        tutorial.classList.add('hidden');
-        state.tutorialStep5Shown = true;
-        saveSession();
-      }, { once: true });
-
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        tutorial.classList.add('hidden');
-        state.tutorialStep5Shown = true;
-        saveSession();
-      }, 3000);
-    } else {
-      tutorial.classList.add('hidden');
-    }
-  }
-
-  function renderConnections() {
-    const svg = $('connections-svg');
-    const canvas = $('groups-canvas-5') || $('final-groups-canvas');
-
-    svg.innerHTML = '';
-
-    // Clear old labels
-    const container = svg.parentElement;
-    container.querySelectorAll('.connection-label').forEach(l => l.remove());
-
-    state.connections.forEach(conn => {
-      let x1, y1, x2, y2;
-
-      // Handle Me as from
-      if (conn.from === 'me') {
-        x1 = state.meX;
-        y1 = state.meY;
-      } else {
-        const fromGroup = state.groups.find(g => g.id === conn.from);
-        const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-        if (!fromGroup || !fromCard) return;
-        x1 = fromGroup.x + fromCard.offsetWidth / 2;
-        y1 = fromGroup.y + fromCard.offsetHeight / 2;
-      }
-
-      // Handle Me as to
-      if (conn.to === 'me') {
-        x2 = state.meX;
-        y2 = state.meY;
-      } else {
-        const toGroup = state.groups.find(g => g.id === conn.to);
-        const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-        if (!toGroup || !toCard) return;
-        x2 = toGroup.x + toCard.offsetWidth / 2;
-        y2 = toGroup.y + toCard.offsetHeight / 2;
-      }
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('class', `connection-line conn-${conn.type}`);
-      path.setAttribute('d', getConnectionPath(x1, y1, x2, y2, conn.type));
-      path.setAttribute('fill', 'none');
-      path.dataset.from = conn.from;
-      path.dataset.to = conn.to;
-
-      path.addEventListener('click', () => {
-        pendingConnection = { from: conn.from, to: conn.to, existing: true };
-        showConnectionModal();
-      });
-
-      svg.appendChild(path);
-
-      // Add label at midpoint
-      const midX = (x1 + x2) / 2;
-      const midY = (y1 + y2) / 2;
-      const labelText = conn.type === 'easy' ? 'Very Easy' :
-                        conn.type === 'moderate' ? 'Moderate' : 'Not Easy';
-
-      const labelDiv = document.createElement('div');
-      labelDiv.className = 'connection-label';
-      labelDiv.style.left = midX + 'px';
-      labelDiv.style.top = midY + 'px';
-      labelDiv.style.transform = 'translate(-50%, -50%)';
-      labelDiv.textContent = labelText;
-
-      container.appendChild(labelDiv);
-    });
-  }
-
-  function getConnectionPath(x1, y1, x2, y2, type) {
-    if (type === 'easy') {
-      return `M ${x1} ${y1} L ${x2} ${y2}`;
-    } else if (type === 'moderate') {
-      // Wavy line
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const amp = 15;
-      const waves = Math.max(2, Math.floor(dist / 50));
-
-      let d = `M ${x1} ${y1}`;
-      for (let i = 1; i <= waves * 2; i++) {
-        const t = i / (waves * 2);
-        const px = x1 + dx * t;
-        const py = y1 + dy * t;
-        const offset = amp * (i % 2 === 0 ? 1 : -1);
-        const perpX = -dy / dist * offset;
-        const perpY = dx / dist * offset;
-
-        if (i === waves * 2) {
-          d += ` L ${x2} ${y2}`;
-        } else {
-          d += ` Q ${px + perpX} ${py + perpY} ${x1 + dx * (t + 0.5 / (waves * 2))} ${y1 + dy * (t + 0.5 / (waves * 2))}`;
-        }
-      }
-      return d;
-    } else {
-      // Jagged line
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const amp = 12;
-      const segments = Math.max(3, Math.floor(dist / 30));
-
-      let d = `M ${x1} ${y1}`;
-      for (let i = 1; i <= segments; i++) {
-        const t = i / segments;
-        const px = x1 + dx * t;
-        const py = y1 + dy * t;
-
-        if (i < segments) {
-          const offset = amp * (i % 2 === 0 ? 1 : -1);
-          const perpX = -dy / dist * offset;
-          const perpY = dx / dist * offset;
-          d += ` L ${px + perpX} ${py + perpY}`;
-        } else {
-          d += ` L ${x2} ${y2}`;
-        }
-      }
-      return d;
-    }
-  }
-
-  function startDrawingConnection(e, groupId, container) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    let startX, startY;
-
-    if (groupId === 'me') {
-      startX = state.meX;
-      startY = state.meY;
-    } else {
-      const group = state.groups.find(g => g.id === groupId);
-      const card = container.querySelector(`[data-id="${groupId}"]`);
-      startX = group.x + card.offsetWidth / 2;
-      startY = group.y + card.offsetHeight / 2;
-    }
-
-    drawingConnection = {
-      fromId: groupId,
-      startX,
-      startY,
-      currentX: startX,
-      currentY: startY,
-      container
-    };
-
-    updateDrawingLine();
-  }
-
-  function updateDrawingLine() {
-    const svg = $('drawing-svg');
-    if (!drawingConnection) {
-      svg.innerHTML = '';
-      return;
-    }
-
-    svg.innerHTML = `
-      <line x1="${drawingConnection.startX}" y1="${drawingConnection.startY}"
-            x2="${drawingConnection.currentX}" y2="${drawingConnection.currentY}" />
-    `;
-  }
-
-  function finishDrawingConnection(toGroupId) {
-    if (!drawingConnection || drawingConnection.fromId === toGroupId) {
-      drawingConnection = null;
-      updateDrawingLine();
-      return;
-    }
-
-    // Normalize: if one is 'me', make sure 'me' is always 'from'
-    let fromId = drawingConnection.fromId;
-    let toId = toGroupId;
-    if (toId === 'me') {
-      fromId = 'me';
-      toId = drawingConnection.fromId;
-    }
-
-    // Check if connection already exists
-    const existing = state.connections.find(c =>
-      (c.from === fromId && c.to === toId) ||
-      (c.from === toId && c.to === fromId)
-    );
-
-    pendingConnection = {
-      from: fromId,
-      to: toId,
-      existing: !!existing
-    };
-
-    drawingConnection = null;
-    updateDrawingLine();
-    showConnectionModal();
-  }
-
-  function showConnectionModal() {
-    const fromIsMe = pendingConnection.from === 'me';
-    const toGroup = state.groups.find(g => g.id === pendingConnection.to);
-    const fromGroup = fromIsMe ? null : state.groups.find(g => g.id === pendingConnection.from);
-
-    let questionText;
-    if (fromIsMe) {
-      questionText = `How easy is it for you to belong to <strong>${toGroup.name}</strong>?`;
-    } else {
-      questionText = `How easy is it to be a member of both <strong>${fromGroup.name}</strong> and <strong>${toGroup.name}</strong> at the same time?`;
-    }
-
-    $('modal-question').innerHTML = questionText;
-    $('remove-conn-btn').classList.toggle('hidden', !pendingConnection.existing);
-    $('connection-modal').classList.remove('hidden');
-  }
-
-  function closeConnectionModal() {
-    $('connection-modal').classList.add('hidden');
-    pendingConnection = null;
-  }
-
-  function setConnectionType(type) {
-    if (!pendingConnection) return;
-
-    // Remove existing connection if any
-    state.connections = state.connections.filter(c =>
-      !((c.from === pendingConnection.from && c.to === pendingConnection.to) ||
-        (c.from === pendingConnection.to && c.to === pendingConnection.from))
-    );
-
-    // Add new connection
-    state.connections.push({
-      from: pendingConnection.from,
-      to: pendingConnection.to,
-      type
-    });
-
-    saveSession();
-    closeConnectionModal();
-    clearConnectionLabels();
-    renderConnections();
-  }
-
-  function removeConnection() {
-    if (!pendingConnection) return;
-
-    state.connections = state.connections.filter(c =>
-      !((c.from === pendingConnection.from && c.to === pendingConnection.to) ||
-        (c.from === pendingConnection.to && c.to === pendingConnection.from))
-    );
-
-    saveSession();
-    closeConnectionModal();
-    clearConnectionLabels();
-    renderConnections();
-  }
-
-  function clearConnectionLabels() {
-    $$('.connection-label').forEach(l => l.remove());
-  }
-
-  // ==================== STEP 6: COMPLETE ====================
-  function renderStep6() {
-    $('final-groups').textContent = state.groups.length;
-    $('final-connections').textContent = state.connections.length;
-
-    // Render final preview
-    const canvas = $('final-groups-canvas');
-    const svg = $('final-connections-svg');
-    const container = $('final-canvas-container');
-
-    // Clear old labels
-    container.querySelectorAll('.connection-label').forEach(l => l.remove());
-
-    // Calculate bounds to fit all content
-    let minX = state.meX - 30, minY = state.meY - 30;
-    let maxX = state.meX + 30, maxY = state.meY + 30;
-
-    state.groups.forEach(g => {
-      const size = g.importance === 'high' ? 130 : g.importance === 'low' ? 75 : 100;
-      if (g.x < minX) minX = g.x;
-      if (g.y < minY) minY = g.y;
-      if (g.x + size > maxX) maxX = g.x + size;
-      if (g.y + size > maxY) maxY = g.y + size;
-    });
-
-    const contentWidth = maxX - minX + 40;
-    const contentHeight = maxY - minY + 40;
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
-    // Calculate scale to fit
-    const scaleX = containerWidth / contentWidth;
-    const scaleY = containerHeight / contentHeight;
-    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
-
-    // Apply transform
-    canvas.style.transform = `scale(${scale})`;
-    canvas.style.width = contentWidth + 'px';
-    canvas.style.height = contentHeight + 'px';
-    svg.style.transform = `scale(${scale})`;
-    svg.style.width = contentWidth + 'px';
-    svg.style.height = contentHeight + 'px';
-
-    // Offset to center
-    const offsetX = (containerWidth - contentWidth * scale) / 2;
-    const offsetY = (containerHeight - contentHeight * scale) / 2;
-    canvas.style.transformOrigin = 'top left';
-    canvas.style.left = offsetX + 'px';
-    canvas.style.top = offsetY + 'px';
-    svg.style.transformOrigin = 'top left';
-    svg.style.left = offsetX + 'px';
-    svg.style.top = offsetY + 'px';
-
-    // Adjust positions for rendering (offset by minX, minY)
-    const offsetState = {
-      ...state,
-      meX: state.meX - minX + 20,
-      meY: state.meY - minY + 20,
-      groups: state.groups.map(g => ({
-        ...g,
-        x: g.x - minX + 20,
-        y: g.y - minY + 20
-      }))
-    };
-
-    renderGroupCardsWithState(canvas, offsetState);
-    renderMeBlockWithState(canvas, offsetState);
-
-    // Wait for cards to render before drawing connections
-    requestAnimationFrame(() => {
-      svg.innerHTML = '';
-
-      state.connections.forEach(conn => {
-        let x1, y1, x2, y2;
-
-        // Handle Me as from
-        if (conn.from === 'me') {
-          x1 = offsetState.meX;
-          y1 = offsetState.meY;
-        } else {
-          const fromGroup = offsetState.groups.find(g => g.id === conn.from);
-          const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-          if (!fromGroup || !fromCard) return;
-          x1 = fromGroup.x + fromCard.offsetWidth / 2;
-          y1 = fromGroup.y + fromCard.offsetHeight / 2;
-        }
-
-        // Handle Me as to
-        if (conn.to === 'me') {
-          x2 = offsetState.meX;
-          y2 = offsetState.meY;
-        } else {
-          const toGroup = offsetState.groups.find(g => g.id === conn.to);
-          const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-          if (!toGroup || !toCard) return;
-          x2 = toGroup.x + toCard.offsetWidth / 2;
-          y2 = toGroup.y + toCard.offsetHeight / 2;
-        }
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('class', `connection-line conn-${conn.type}`);
-        path.setAttribute('d', getConnectionPath(x1, y1, x2, y2, conn.type));
-        path.setAttribute('fill', 'none');
-        svg.appendChild(path);
-      });
-
-      // Add connection labels (scaled with transform, so use offset positions)
-      state.connections.forEach(conn => {
-        let x1, y1, x2, y2;
-
-        if (conn.from === 'me') {
-          x1 = offsetState.meX;
-          y1 = offsetState.meY;
-        } else {
-          const fromGroup = offsetState.groups.find(g => g.id === conn.from);
-          const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-          if (!fromGroup || !fromCard) return;
-          x1 = fromGroup.x + fromCard.offsetWidth / 2;
-          y1 = fromGroup.y + fromCard.offsetHeight / 2;
-        }
-
-        if (conn.to === 'me') {
-          x2 = offsetState.meX;
-          y2 = offsetState.meY;
-        } else {
-          const toGroup = offsetState.groups.find(g => g.id === conn.to);
-          const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-          if (!toGroup || !toCard) return;
-          x2 = toGroup.x + toCard.offsetWidth / 2;
-          y2 = toGroup.y + toCard.offsetHeight / 2;
-        }
-
-        const midX = (x1 + x2) / 2;
-        const midY = (y1 + y2) / 2;
-        const labelText = conn.type === 'easy' ? 'Very Easy' :
-                          conn.type === 'moderate' ? 'Moderate' : 'Not Easy';
-
-        const labelDiv = document.createElement('div');
-        labelDiv.className = 'connection-label';
-        labelDiv.style.left = midX + 'px';
-        labelDiv.style.top = midY + 'px';
-        labelDiv.style.transform = 'translate(-50%, -50%)';
-        labelDiv.textContent = labelText;
-
-        $('final-canvas-container').appendChild(labelDiv);
-      });
+    // Render community markers
+    topCommunities.forEach(community => {
+      const pos = normalizePosition(state.mapPositions[community.id]);
+      if (!pos) return;
+
+      const marker = document.createElement('div');
+      marker.className = 'map-marker community-marker';
+      marker.style.left = (pos.x * containerRect.width) + 'px';
+      marker.style.top = (pos.y * containerRect.height) + 'px';
+      marker.innerHTML = `
+        <span class="marker-label">${escapeHtml(community.name)}</span>
+        <span class="marker-square"></span>
+      `;
+      canvas.appendChild(marker);
     });
   }
 
@@ -900,99 +1115,6 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }
-
-  // ==================== DRAG HANDLING ====================
-  function startDrag(e, groupId, canvas) {
-    const card = canvas.querySelector(`[data-id="${groupId}"]`);
-    const rect = card.getBoundingClientRect();
-    const containerRect = canvas.parentElement.getBoundingClientRect();
-
-    dragState = {
-      groupId,
-      canvas,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      containerRect
-    };
-
-    card.classList.add('dragging');
-  }
-
-  function handleMouseMove(e) {
-    if (dragState) {
-      const card = dragState.canvas.querySelector(`[data-id="${dragState.groupId}"]`);
-      const group = state.groups.find(g => g.id === dragState.groupId);
-
-      let x = e.clientX - dragState.containerRect.left - dragState.offsetX;
-      let y = e.clientY - dragState.containerRect.top - dragState.offsetY;
-
-      // Constrain to container
-      x = Math.max(0, Math.min(x, dragState.containerRect.width - card.offsetWidth));
-      y = Math.max(0, Math.min(y, dragState.containerRect.height - card.offsetHeight));
-
-      card.style.left = x + 'px';
-      card.style.top = y + 'px';
-
-      group.x = x;
-      group.y = y;
-    }
-
-    if (meDragState) {
-      const meBlock = meDragState.canvas.querySelector('.me-block');
-
-      let x = e.clientX - meDragState.containerRect.left - meDragState.offsetX + 30;
-      let y = e.clientY - meDragState.containerRect.top - meDragState.offsetY + 30;
-
-      // Constrain to container
-      x = Math.max(30, Math.min(x, meDragState.containerRect.width - 30));
-      y = Math.max(30, Math.min(y, meDragState.containerRect.height - 30));
-
-      meBlock.style.left = (x - 30) + 'px';
-      meBlock.style.top = (y - 30) + 'px';
-
-      state.meX = x;
-      state.meY = y;
-    }
-
-    if (drawingConnection) {
-      const rect = drawingConnection.container.getBoundingClientRect();
-      drawingConnection.currentX = e.clientX - rect.left;
-      drawingConnection.currentY = e.clientY - rect.top;
-      updateDrawingLine();
-    }
-  }
-
-  function handleMouseUp(e) {
-    if (dragState) {
-      const card = dragState.canvas.querySelector(`[data-id="${dragState.groupId}"]`);
-      card.classList.remove('dragging');
-      dragState = null;
-      saveSession();
-    }
-
-    if (meDragState) {
-      const meBlock = meDragState.canvas.querySelector('.me-block');
-      meBlock.classList.remove('dragging');
-      meDragState = null;
-      saveSession();
-    }
-
-    if (drawingConnection) {
-      // Check if we're over a group card or Me block
-      const target = document.elementFromPoint(e.clientX, e.clientY);
-      const card = target?.closest('.group-card');
-      const meBlock = target?.closest('.me-block');
-
-      if (card && card.dataset.id !== drawingConnection.fromId) {
-        finishDrawingConnection(card.dataset.id);
-      } else if (meBlock && drawingConnection.fromId !== 'me') {
-        finishDrawingConnection('me');
-      } else {
-        drawingConnection = null;
-        updateDrawingLine();
-      }
-    }
   }
 
   // ==================== UTILITIES ====================

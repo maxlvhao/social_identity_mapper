@@ -15,12 +15,16 @@
         <div class="progress-fill" id="progress-fill"></div>
       </div>
       <div class="progress-steps">
-        <span class="step" data-step="1">1. Identify Groups</span>
-        <span class="step" data-step="2">2. Importance</span>
-        <span class="step" data-step="3">3. Group Details</span>
-        <span class="step" data-step="4">4. Position Groups</span>
-        <span class="step" data-step="5">5. Connections</span>
-        <span class="step" data-step="6">6. Complete</span>
+        <span class="step" data-step="1">1. Identities</span>
+        <span class="step" data-step="2">2. Rank Identities</span>
+        <span class="step" data-step="3">3. Identity Strength</span>
+        <span class="step" data-step="4">4. Communities</span>
+        <span class="step" data-step="5">5. Rank Communities</span>
+        <span class="step" data-step="6">6. Belonging</span>
+        <span class="step" data-step="7">7. Participation</span>
+        <span class="step" data-step="8">8. Info Norms</span>
+        <span class="step" data-step="9">9. Info Map</span>
+        <span class="step" data-step="10">10. Complete</span>
       </div>
     </header>
 
@@ -28,7 +32,7 @@
     <section id="step-landing" class="step-screen active">
       <div class="step-content centered">
         <h1>Social Identity Mapping</h1>
-        <p class="subtitle">A visual way to understand your social world and the groups you belong to.</p>
+        <p class="subtitle">Explore your identities, communities, and how you belong.</p>
 
         <div class="session-info">
           <span>Session ID:</span>
@@ -38,47 +42,47 @@
         <div class="intro-text">
           <p>In this activity, you will:</p>
           <ol>
-            <li>Identify all the groups you belong to</li>
-            <li>Rate how important each group is to you</li>
-            <li>Add details about your relationship with each group</li>
-            <li>Arrange the groups to show how similar or different they are</li>
-            <li>Draw connections to show how easy it is to belong to multiple groups</li>
+            <li>List the identities you see yourself as having</li>
+            <li>Reflect on how central your top identities are to you</li>
+            <li>List the communities you participate in</li>
+            <li>Explore your sense of belonging in your top communities</li>
+            <li>Consider how participation works in those communities</li>
+            <li>Map your identities and communities visually</li>
           </ol>
-          <p>This typically takes 10-15 minutes. Your progress is saved automatically.</p>
+          <p>Your progress is saved automatically.</p>
         </div>
 
         <button id="start-btn" class="btn btn-primary btn-large">Begin Activity</button>
       </div>
     </section>
 
-    <!-- Step 1: Identify Groups -->
+    <!-- Step 1: Add Identities -->
     <section id="step-1" class="step-screen">
       <div class="step-content">
         <div class="step-header">
-          <h2>Step 1: Identify Your Groups</h2>
-          <p class="instruction">Think about <strong>all the groups that you belong to</strong>. These can take any form:</p>
+          <h2>Step 1: Identities</h2>
+          <p class="instruction">List identities you see yourself as having. Add as many as you can think of.</p>
         </div>
 
         <div class="examples-box">
           <p class="examples-intro">Examples:</p>
           <p class="examples-list">
-            <strong>family</strong>, <strong>book club</strong>, <strong>church group</strong>, <strong>work team</strong>, <strong>gym buddies</strong>, <strong>study group</strong>, <strong>tennis club</strong>, <strong>neighborhood friends</strong>, <strong>alumni network</strong>, <strong>volunteer group</strong>
+            <strong>student</strong>, <strong>first-gen</strong>, <strong>gamer</strong>, <strong>international</strong>, <strong>commuter</strong>, <strong>artist</strong>, <strong>athlete</strong>, <strong>parent</strong>, <strong>introvert</strong>, <strong>activist</strong>
           </p>
-          <p class="examples-categories">These could be family, social, community, sporting, work, professional, or any other type of group.</p>
         </div>
 
         <div class="input-section">
-          <label for="new-group-input">Enter a group name and press Enter or click Add:</label>
+          <label for="new-identity-input">Enter an identity and press Enter or click Add:</label>
           <div class="input-row">
-            <input type="text" id="new-group-input" placeholder="e.g., Family, Book Club, Work Team...">
-            <button id="add-group-btn" class="btn btn-primary">Add Group</button>
+            <input type="text" id="new-identity-input" placeholder="e.g., student, gamer, parent...">
+            <button id="add-identity-btn" class="btn btn-primary">Add Identity</button>
           </div>
         </div>
 
-        <div class="groups-list-section">
-          <h3>Your Groups (<span id="groups-count">0</span>)</h3>
-          <ul id="groups-list" class="groups-list"></ul>
-          <p class="hint" id="groups-hint">Add at least one group to continue.</p>
+        <div class="identities-list-section">
+          <h3>Your Identities (<span id="identities-count">0</span>)</h3>
+          <div id="identities-list" class="identities-list"></div>
+          <p class="hint" id="identities-hint">Add at least 3 identities to continue.</p>
         </div>
 
         <div class="step-nav fixed-nav">
@@ -88,54 +92,45 @@
       </div>
     </section>
 
-    <!-- Step 2: Importance Rating -->
+    <!-- Step 2: Rank Identities -->
     <section id="step-2" class="step-screen">
       <div class="step-content">
         <div class="step-header">
-          <h2>Step 2: How Important is Each Group?</h2>
-          <p class="instruction">For each group, indicate how important it is to you.</p>
+          <h2>Step 2: Rank Your Top Identities</h2>
+          <p class="instruction">Drag your top 3 most important identities to the slots below.</p>
         </div>
 
-        <div id="importance-list" class="importance-list"></div>
+        <div class="rank-source-section">
+          <h3>Your Identities</h3>
+          <div id="identity-rank-source" class="rank-source"></div>
+        </div>
 
-        <p class="hint" id="importance-hint">Please rate all groups before continuing.</p>
+        <div class="rank-target-section">
+          <h3>Top 3 Most Important</h3>
+          <div id="identity-rank-target" class="rank-target">
+            <div class="rank-slot" data-slot="1"><span class="slot-number">1</span></div>
+            <div class="rank-slot" data-slot="2"><span class="slot-number">2</span></div>
+            <div class="rank-slot" data-slot="3"><span class="slot-number">3</span></div>
+          </div>
+          <p class="hint" id="identity-rank-hint">Drag 3 identities to the slots above.</p>
+        </div>
 
         <div class="step-nav fixed-nav">
           <button id="step2-back" class="btn btn-secondary">Back</button>
-          <button id="step2-next" class="btn btn-primary">Next</button>
+          <button id="step2-next" class="btn btn-primary" disabled>Next</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 3: Group Details -->
+    <!-- Step 3: Identity Strength -->
     <section id="step-3" class="step-screen">
-      <div class="step-content full-width">
+      <div class="step-content">
         <div class="step-header">
-          <h2>Step 3: Group Details</h2>
-          <p class="instruction">For each group, answer the four questions below.</p>
+          <h2>Step 3: Identity Strength</h2>
+          <p class="instruction">For each of your top identities, rate the following (1 = strongly disagree, 7 = strongly agree):</p>
         </div>
 
-        <div class="details-questions">
-          <div class="dq"><strong>Positivity:</strong> How positive do you feel about being a member of this group? (1 = not at all positive, 10 = very positive)</div>
-          <div class="dq"><strong>Contact:</strong> In a typical month, how many days would you engage in activities related to this group? (0-30 days)</div>
-          <div class="dq"><strong>Tenure:</strong> For how many years have you been a member of this group? (use decimals, e.g. 0.5 = 6 months)</div>
-          <div class="dq"><strong>Representativeness:</strong> How well do you represent or exemplify what it means to be a member of this group? (1 = not at all, 10 = very well)</div>
-        </div>
-
-        <div class="details-table-container">
-          <table class="details-table" id="details-table">
-            <thead>
-              <tr>
-                <th>Group</th>
-                <th>Positivity<br><span class="th-hint">(1-10)</span></th>
-                <th>Contact<br><span class="th-hint">(days)</span></th>
-                <th>Tenure<br><span class="th-hint">(years)</span></th>
-                <th>Representativeness<br><span class="th-hint">(1-10)</span></th>
-              </tr>
-            </thead>
-            <tbody id="details-tbody"></tbody>
-          </table>
-        </div>
+        <div id="identity-strength-container" class="strength-container"></div>
 
         <div class="step-nav fixed-nav">
           <button id="step3-back" class="btn btn-secondary">Back</button>
@@ -144,74 +139,175 @@
       </div>
     </section>
 
-    <!-- Step 4: Position Groups -->
+    <!-- Step 4: Add Communities -->
     <section id="step-4" class="step-screen">
-      <div class="step-content full-width no-scroll">
-        <div class="step-header compact">
-          <h2>Step 4: Position</h2>
-          <p class="instruction">Position your groups relative to each other. Drag groups on the canvas. Place <strong>similar groups close together</strong> and <strong>different groups far apart</strong>.</p>
+      <div class="step-content">
+        <div class="step-header">
+          <h2>Step 4: Communities</h2>
+          <p class="instruction">List communities you are part of (online/offline, including loose ones). Add as many as you can think of.</p>
         </div>
 
-        <div id="canvas-container-step4" class="canvas-container flex-canvas">
-          <div id="groups-canvas-4" class="groups-canvas"></div>
-          <div id="drag-tutorial-4" class="tutorial-overlay">
-            <div class="tutorial-content">
-              <div class="tutorial-hand">👆</div>
-              <p>Drag groups to position them</p>
-            </div>
+        <div class="examples-box">
+          <p class="examples-intro">Examples:</p>
+          <p class="examples-list">
+            <strong>subreddits</strong>, <strong>fandoms</strong>, <strong>professions</strong>, <strong>faith groups</strong>, <strong>Discord servers</strong>, <strong>clubs</strong>, <strong>sports teams</strong>, <strong>study groups</strong>
+          </p>
+        </div>
+
+        <div class="input-section">
+          <label for="new-community-input">Enter a community and press Enter or click Add:</label>
+          <div class="input-row">
+            <input type="text" id="new-community-input" placeholder="e.g., r/gaming, church group, work team...">
+            <button id="add-community-btn" class="btn btn-primary">Add Community</button>
           </div>
+        </div>
+
+        <div class="communities-list-section">
+          <h3>Your Communities (<span id="communities-count">0</span>)</h3>
+          <div id="communities-list" class="communities-list"></div>
+          <p class="hint" id="communities-hint">Add at least 3 communities to continue.</p>
         </div>
 
         <div class="step-nav fixed-nav">
           <button id="step4-back" class="btn btn-secondary">Back</button>
-          <button id="step4-next" class="btn btn-primary">Next</button>
+          <button id="step4-next" class="btn btn-primary" disabled>Next</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 5: Connections -->
+    <!-- Step 5: Rank Communities -->
     <section id="step-5" class="step-screen">
-      <div class="step-content full-width no-scroll">
-        <div class="step-header compact">
-          <h2>Step 5: Belonging</h2>
-          <p class="instruction">Drag from <strong>Me</strong> to a group to indicate how easy it is for you to belong to that group. Connect any two groups to indicate how easy it is to belong to both at the same time.</p>
+      <div class="step-content">
+        <div class="step-header">
+          <h2>Step 5: Rank Your Top Communities</h2>
+          <p class="instruction">Drag the 3 communities where you spend the most time/effort engaging to the slots below.</p>
         </div>
 
-        <div id="canvas-container-step5" class="canvas-container flex-canvas">
-          <svg id="connections-svg" class="connections-layer"></svg>
-          <svg id="drawing-svg" class="drawing-layer"></svg>
-          <div id="groups-canvas-5" class="groups-canvas locked"></div>
-          <div id="drag-tutorial-5" class="tutorial-overlay">
-            <div class="tutorial-content">
-              <div class="tutorial-hand">👆</div>
-              <p>Drag from one group to another to connect</p>
-            </div>
+        <div class="rank-source-section">
+          <h3>Your Communities</h3>
+          <div id="community-rank-source" class="rank-source"></div>
+        </div>
+
+        <div class="rank-target-section">
+          <h3>Top 3 Most Engaged</h3>
+          <div id="community-rank-target" class="rank-target">
+            <div class="rank-slot" data-slot="1"><span class="slot-number">1</span></div>
+            <div class="rank-slot" data-slot="2"><span class="slot-number">2</span></div>
+            <div class="rank-slot" data-slot="3"><span class="slot-number">3</span></div>
           </div>
+          <p class="hint" id="community-rank-hint">Drag 3 communities to the slots above.</p>
         </div>
 
         <div class="step-nav fixed-nav">
           <button id="step5-back" class="btn btn-secondary">Back</button>
-          <button id="step5-next" class="btn btn-primary">Next</button>
+          <button id="step5-next" class="btn btn-primary" disabled>Next</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 6: Complete -->
+    <!-- Step 6: Belonging Uncertainty -->
     <section id="step-6" class="step-screen">
+      <div class="step-content">
+        <div class="step-header">
+          <h2>Step 6: Belonging</h2>
+          <p class="instruction">Think about how you feel about yourself at different times. Some people pretty much always feel the same way about themselves. Other people feel differently about themselves at different times.</p>
+        </div>
+
+        <div id="belonging-container" class="belonging-container"></div>
+
+        <div class="step-nav fixed-nav">
+          <button id="step6-back" class="btn btn-secondary">Back</button>
+          <button id="step6-next" class="btn btn-primary">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 7: Community Participation -->
+    <section id="step-7" class="step-screen">
+      <div class="step-content">
+        <div class="step-header">
+          <h2>Step 7: Participation</h2>
+          <p class="instruction">For each of your top communities, answer the following:</p>
+        </div>
+
+        <div id="participation-container" class="participation-container"></div>
+
+        <div class="step-nav fixed-nav">
+          <button id="step7-back" class="btn btn-secondary">Back</button>
+          <button id="step7-next" class="btn btn-primary">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 8: Information Norms -->
+    <section id="step-8" class="step-screen">
+      <div class="step-content">
+        <div class="step-header">
+          <h2>Step 8: Information Norms</h2>
+          <p class="instruction">For each community, answer the following about how information and language work:</p>
+        </div>
+
+        <div id="info-norms-container" class="info-norms-container"></div>
+
+        <div class="step-nav fixed-nav">
+          <button id="step8-back" class="btn btn-secondary">Back</button>
+          <button id="step8-next" class="btn btn-primary">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 9: Coordinate Map -->
+    <section id="step-9" class="step-screen">
+      <div class="step-content full-width no-scroll">
+        <div class="step-header compact">
+          <h2>Step 9: Information Behavior Map</h2>
+          <p class="instruction">Map the information you seek to maintain each identity or participate in each community. Consider what type of information you need and how often you seek it.</p>
+        </div>
+
+        <div id="canvas-container-step9" class="canvas-container flex-canvas coordinate-canvas">
+          <div class="axis-label axis-x-left">Specialized information</div>
+          <div class="axis-label axis-x-right">General information</div>
+          <div class="axis-label axis-y-top">High frequency</div>
+          <div class="axis-label axis-y-bottom">Low frequency</div>
+          <div id="coordinate-canvas" class="coordinate-grid"></div>
+        </div>
+
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-dot identity"></span> Identity</span>
+          <span class="legend-item"><span class="legend-square community"></span> Community</span>
+        </div>
+
+        <div class="step-nav fixed-nav">
+          <button id="step9-back" class="btn btn-secondary">Back</button>
+          <button id="step9-next" class="btn btn-primary">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 10: Complete -->
+    <section id="step-10" class="step-screen">
       <div class="step-content no-scroll complete-screen">
         <div class="complete-header">
           <div class="complete-icon">✓</div>
           <h2>Activity Complete!</h2>
-          <p>You mapped <strong id="final-groups">0</strong> groups with <strong id="final-connections">0</strong> connections.</p>
+          <p>You mapped <strong id="final-identities">0</strong> identities and <strong id="final-communities">0</strong> communities.</p>
         </div>
 
-        <div id="final-canvas-container" class="canvas-container final-preview">
-          <svg id="final-connections-svg" class="connections-layer"></svg>
-          <div id="final-groups-canvas" class="groups-canvas locked"></div>
+        <div id="final-canvas-container" class="canvas-container final-preview coordinate-canvas">
+          <div class="axis-label axis-x-left">Specialized information</div>
+          <div class="axis-label axis-x-right">General information</div>
+          <div class="axis-label axis-y-top">High frequency</div>
+          <div class="axis-label axis-y-bottom">Low frequency</div>
+          <div id="final-coordinate-canvas" class="coordinate-grid"></div>
+        </div>
+
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-dot identity"></span> Identity</span>
+          <span class="legend-item"><span class="legend-square community"></span> Community</span>
         </div>
 
         <div class="qualtrics-reminder">
-          <p><strong>Next step:</strong> After downloading your data file, return to Qualtrics and upload the file to complete the survey.</p>
+          <p><strong>Next step:</strong> Download your data file to save your responses.</p>
         </div>
 
         <div class="step-nav fixed-nav">
@@ -220,34 +316,6 @@
         </div>
       </div>
     </section>
-  </div>
-
-  <!-- Connection Type Modal -->
-  <div id="connection-modal" class="modal hidden">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content compact-modal">
-      <p class="modal-question" id="modal-question">How easy is it to be a member of both groups at the same time?</p>
-
-      <div class="connection-options-row">
-        <button class="conn-option-compact" data-type="easy">
-          <svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" class="conn-easy"/></svg>
-          <span>Very Easy</span>
-        </button>
-        <button class="conn-option-compact" data-type="moderate">
-          <svg width="40" height="12"><path d="M0,6 Q10,0 20,6 Q30,12 40,6" class="conn-moderate" fill="none"/></svg>
-          <span>Moderate</span>
-        </button>
-        <button class="conn-option-compact" data-type="difficult">
-          <svg width="40" height="12"><path d="M0,6 L8,1 L16,11 L24,1 L32,11 L40,6" class="conn-difficult" fill="none"/></svg>
-          <span>Not Easy</span>
-        </button>
-      </div>
-
-      <div class="modal-actions">
-        <button id="remove-conn-btn" class="btn btn-danger btn-small hidden">Remove</button>
-        <button id="cancel-conn-btn" class="btn btn-secondary btn-small">Cancel</button>
-      </div>
-    </div>
   </div>
 
   <script src="app.js"></script>
