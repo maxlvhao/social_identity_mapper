@@ -36,7 +36,9 @@
     { value: 'moral', label: 'Moral stances' },
     { value: 'time', label: 'Time commitment' },
     { value: 'technical', label: 'Technical skill' },
-    { value: 'location', label: 'Physical location' }
+    { value: 'location', label: 'Physical location' },
+    { value: 'race-ethnicity', label: 'Race / ethnicity' },
+    { value: 'other', label: 'Other' }
   ];
 
   const KEEP_UP_METHODS = [
@@ -794,10 +796,10 @@
           <div class="slider-group">
             <label>"To be taken seriously here, you need to know the community's language (terms/memes/ways of speaking)"</label>
             <div class="slider-row">
-              <span>1</span>
+              <span>1 (Strongly disagree)</span>
               <input type="range" min="1" max="7" value="${norms.languageNeeded || 4}"
                      data-id="${community.id}" data-field="languageNeeded">
-              <span>7</span>
+              <span>7 (Strongly agree)</span>
               <span class="slider-value">${norms.languageNeeded || 4}</span>
             </div>
           </div>
@@ -805,10 +807,10 @@
           <div class="slider-group">
             <label>"I've put effort into learning that language"</label>
             <div class="slider-row">
-              <span>1</span>
+              <span>1 (Strongly disagree)</span>
               <input type="range" min="1" max="7" value="${norms.effortLearning || 4}"
                      data-id="${community.id}" data-field="effortLearning">
-              <span>7</span>
+              <span>7 (Strongly agree)</span>
               <span class="slider-value">${norms.effortLearning || 4}</span>
             </div>
           </div>
@@ -816,10 +818,10 @@
           <div class="slider-group">
             <label>"There are sources (news/accounts/sites) you're expected to follow to 'get it'"</label>
             <div class="slider-row">
-              <span>1</span>
+              <span>1 (Strongly disagree)</span>
               <input type="range" min="1" max="7" value="${norms.sourcesExpected || 4}"
                      data-id="${community.id}" data-field="sourcesExpected">
-              <span>7</span>
+              <span>7 (Strongly agree)</span>
               <span class="slider-value">${norms.sourcesExpected || 4}</span>
             </div>
           </div>
@@ -827,10 +829,10 @@
           <div class="slider-group">
             <label>"Using the 'wrong' sources or framing gets judged here"</label>
             <div class="slider-row">
-              <span>1</span>
+              <span>1 (Strongly disagree)</span>
               <input type="range" min="1" max="7" value="${norms.wrongSourcesJudged || 4}"
                      data-id="${community.id}" data-field="wrongSourcesJudged">
-              <span>7</span>
+              <span>7 (Strongly agree)</span>
               <span class="slider-value">${norms.wrongSourcesJudged || 4}</span>
             </div>
           </div>
