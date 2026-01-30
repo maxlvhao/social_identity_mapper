@@ -114,6 +114,9 @@
     // Show/hide progress header
     $('progress-header').classList.toggle('hidden', stepNum === 0);
 
+    // Show/hide researcher link (only on landing page)
+    $('researcher-link').classList.toggle('hidden', stepNum !== 0);
+
     // Update progress bar
     if (stepNum > 0) {
       const progress = ((stepNum - 1) / 5) * 100;
