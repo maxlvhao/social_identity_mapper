@@ -1,60 +1,8 @@
-// Social Identity Mapping App - Revised Flow (10 Steps)
+// Social Identity Mapping App - Simplified 5-Step Flow
 (function() {
   'use strict';
 
-  // ==================== CONSTANTS ====================
-  const IDENTITY_TYPES = [
-    { value: 'role-group', label: 'Role-based / Group-based' },
-    { value: 'personal-trait', label: 'Personal trait' },
-    { value: 'belief-value', label: 'Belief or value' },
-    { value: 'place-based', label: 'Place-based' },
-    { value: 'other', label: 'Other' }
-  ];
-
-  const COMMUNITY_SETTINGS = [
-    { value: 'online', label: 'Online' },
-    { value: 'offline', label: 'Offline' },
-    { value: 'hybrid', label: 'Hybrid' }
-  ];
-
-  const LIKERT_SCALE = [
-    { value: 1, label: 'Strongly Disagree' },
-    { value: 2, label: 'Disagree' },
-    { value: 3, label: 'Slightly Disagree' },
-    { value: 4, label: 'Neutral' },
-    { value: 5, label: 'Slightly Agree' },
-    { value: 6, label: 'Agree' },
-    { value: 7, label: 'Strongly Agree' }
-  ];
-
-  const BOUNDARY_MARKERS = [
-    { value: 'jargon', label: 'Jargon / lingo' },
-    { value: 'credentials', label: 'Credentials / insider knowledge' },
-    { value: 'sources', label: 'News sources / information sources' },
-    { value: 'rituals', label: 'Rituals / events' },
-    { value: 'humor', label: 'Humor / memes' },
-    { value: 'moral', label: 'Moral stances' },
-    { value: 'time', label: 'Time commitment' },
-    { value: 'technical', label: 'Technical skill' },
-    { value: 'location', label: 'Physical location' },
-    { value: 'race-ethnicity', label: 'Race / ethnicity' },
-    { value: 'other', label: 'Other' }
-  ];
-
-  const KEEP_UP_METHODS = [
-    { value: 'lurk', label: 'Lurk / read' },
-    { value: 'ask', label: 'Ask someone' },
-    { value: 'follow-accounts', label: 'Follow key accounts' },
-    { value: 'newsletters', label: 'Newsletters' },
-    { value: 'discord', label: 'Group chat / Discord' },
-    { value: 'official', label: 'Official channels' },
-    { value: 'campus', label: 'Campus media' },
-    { value: 'mainstream', label: 'Mainstream media' },
-    { value: 'podcasts', label: 'Podcasts / YouTube' },
-    { value: 'other', label: 'Other' }
-  ];
-
-  const TOTAL_STEPS = 10;
+  const TOTAL_STEPS = 5;
 
   // ==================== STATE ====================
   let state = {
@@ -62,17 +10,16 @@
     createdAt: null,
     updatedAt: null,
     currentStep: 0,
-    identities: [],
-    identityStrength: {},
-    communities: [],
-    belongingUncertainty: {},
-    communityParticipation: {},
-    informationNorms: {},
-    mapPositions: {}
+    // Communities with all fields
+    communities: [],  // { id, name, importance, positivity, contact, tenure, representativeness, x, y }
+    connections: []   // { from, to, type }
   };
 
   let saveTimeout = null;
   let dragState = null;
+  let drawingConnection = null;
+  let pendingConnection = null;
+  let typewriterTimeout = null;
 
   // ==================== DOM HELPERS ====================
   const $ = id => document.getElementById(id);
@@ -122,7 +69,7 @@
       console.log('Server unavailable, using local data');
     }
 
-    if (state.identities.length > 0 && state.currentStep > 0) {
+    if (state.communities.length > 0 && state.currentStep > 0) {
       goToStep(state.currentStep);
     }
   }
@@ -179,311 +126,102 @@
       2: renderStep2,
       3: renderStep3,
       4: renderStep4,
-      5: renderStep5,
-      6: renderStep6,
-      7: renderStep7,
-      8: renderStep8,
-      9: renderStep9,
-      10: renderStep10
+      5: renderStep5
     };
     if (renderFns[stepNum]) renderFns[stepNum]();
+
+    // Trigger typewriter effect on instruction text
+    if (stepNum > 0) {
+      const instruction = $(targetId).querySelector('.instruction');
+      if (instruction) {
+        typewriterEffect(instruction);
+      }
+    }
+  }
+
+  // ==================== TYPEWRITER EFFECT ====================
+  function typewriterEffect(element) {
+    // Clear any existing typewriter
+    clearTimeout(typewriterTimeout);
+
+    // Store original HTML content (to preserve <strong> tags etc)
+    const originalHTML = element.dataset.originalHtml || element.innerHTML;
+    element.dataset.originalHtml = originalHTML;
+
+    // Get plain text for typing
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = originalHTML;
+    const fullText = tempDiv.textContent;
+
+    // Set up typewriter
+    element.classList.add('typewriter');
+    element.innerHTML = '<span class="typewriter-text"></span><span class="typewriter-cursor"></span>';
+
+    const textSpan = element.querySelector('.typewriter-text');
+    const cursor = element.querySelector('.typewriter-cursor');
+
+    let charIndex = 0;
+    const speed = 15; // ms per character
+
+    function type() {
+      if (charIndex < fullText.length) {
+        textSpan.textContent = fullText.substring(0, charIndex + 1);
+        charIndex++;
+        typewriterTimeout = setTimeout(type, speed);
+      } else {
+        // Typing complete - restore original HTML with formatting and remove cursor
+        setTimeout(() => {
+          element.innerHTML = originalHTML;
+          element.classList.remove('typewriter');
+        }, 500);
+      }
+    }
+
+    // Start typing after a brief delay
+    typewriterTimeout = setTimeout(type, 300);
   }
 
   // ==================== EVENT BINDING ====================
   function bindEvents() {
     $('start-btn').addEventListener('click', () => goToStep(1));
 
-    // Step 1: Add Identities
-    $('add-identity-btn').addEventListener('click', addIdentity);
-    $('new-identity-input').addEventListener('keypress', e => {
-      if (e.key === 'Enter') addIdentity();
-    });
-    $('step1-next').addEventListener('click', () => goToStep(2));
-
-    // Step 2: Rank Identities
-    $('step2-back').addEventListener('click', () => goToStep(1));
-    $('step2-next').addEventListener('click', () => goToStep(3));
-
-    // Step 3: Identity Strength
-    $('step3-back').addEventListener('click', () => goToStep(2));
-    $('step3-next').addEventListener('click', () => goToStep(4));
-
-    // Step 4: Add Communities
+    // Step 1: Add Communities
     $('add-community-btn').addEventListener('click', addCommunity);
     $('new-community-input').addEventListener('keypress', e => {
       if (e.key === 'Enter') addCommunity();
     });
+    $('step1-next').addEventListener('click', () => goToStep(2));
+
+    // Step 2: Community Details
+    $('step2-back').addEventListener('click', () => goToStep(1));
+    $('step2-next').addEventListener('click', () => goToStep(3));
+
+    // Step 3: Position
+    $('step3-back').addEventListener('click', () => goToStep(2));
+    $('step3-next').addEventListener('click', () => goToStep(4));
+
+    // Step 4: Connections
     $('step4-back').addEventListener('click', () => goToStep(3));
     $('step4-next').addEventListener('click', () => goToStep(5));
 
-    // Step 5: Rank Communities
-    $('step5-back').addEventListener('click', () => goToStep(4));
-    $('step5-next').addEventListener('click', () => goToStep(6));
-
-    // Step 6: Belonging
-    $('step6-back').addEventListener('click', () => goToStep(5));
-    $('step6-next').addEventListener('click', () => goToStep(7));
-
-    // Step 7: Participation
-    $('step7-back').addEventListener('click', () => goToStep(6));
-    $('step7-next').addEventListener('click', () => goToStep(8));
-
-    // Step 8: Info Norms
-    $('step8-back').addEventListener('click', () => goToStep(7));
-    $('step8-next').addEventListener('click', () => goToStep(9));
-
-    // Step 9: Map
-    $('step9-back').addEventListener('click', () => goToStep(8));
-    $('step9-next').addEventListener('click', () => goToStep(10));
-
-    // Step 10: Complete
+    // Step 5: Complete
     $('download-btn').addEventListener('click', downloadData);
-    $('back-to-edit').addEventListener('click', () => goToStep(9));
+    $('back-to-edit').addEventListener('click', () => goToStep(4));
 
-    // Global drag events
+    // Connection Modal
+    $('cancel-conn-btn').addEventListener('click', closeConnectionModal);
+    $('remove-conn-btn').addEventListener('click', removeConnection);
+    $$('.conn-option-compact').forEach(btn => {
+      btn.addEventListener('click', () => setConnectionType(btn.dataset.type));
+    });
+    $('connection-modal').querySelector('.modal-backdrop').addEventListener('click', closeConnectionModal);
+
+    // Global mouse events for dragging
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }
 
-  // ==================== STEP 1: ADD IDENTITIES ====================
-  function addIdentity() {
-    const input = $('new-identity-input');
-    const name = input.value.trim();
-
-    if (!name) return;
-
-    if (state.identities.some(i => i.name.toLowerCase() === name.toLowerCase())) {
-      input.select();
-      return;
-    }
-
-    state.identities.push({
-      id: generateId('i_'),
-      name: name,
-      type: null,
-      isTopThree: false,
-      topRank: null
-    });
-
-    input.value = '';
-    input.focus();
-    renderStep1();
-    saveSession();
-  }
-
-  function removeIdentity(identityId) {
-    state.identities = state.identities.filter(i => i.id !== identityId);
-    delete state.identityStrength[identityId];
-    delete state.mapPositions[identityId];
-    renderStep1();
-    saveSession();
-  }
-
-  function renderStep1() {
-    const list = $('identities-list');
-    const count = $('identities-count');
-    const hint = $('identities-hint');
-
-    count.textContent = state.identities.length;
-    hint.classList.toggle('hidden', state.identities.length >= 3);
-    $('step1-next').disabled = state.identities.length < 3 || !state.identities.every(i => i.type !== null);
-
-    list.innerHTML = state.identities.map(i => `
-      <div class="identity-item" data-id="${i.id}">
-        <span class="identity-name">${escapeHtml(i.name)}</span>
-        <select class="type-select" data-id="${i.id}">
-          <option value="">Select type...</option>
-          ${IDENTITY_TYPES.map(t => `<option value="${t.value}" ${i.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
-        </select>
-        <button class="remove-btn" data-id="${i.id}" title="Remove">&times;</button>
-      </div>
-    `).join('');
-
-    // Bind events
-    list.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.addEventListener('click', () => removeIdentity(btn.dataset.id));
-    });
-
-    list.querySelectorAll('.type-select').forEach(select => {
-      select.addEventListener('change', () => {
-        const identity = state.identities.find(i => i.id === select.dataset.id);
-        if (identity) {
-          identity.type = select.value || null;
-          renderStep1();
-          saveSession();
-        }
-      });
-    });
-  }
-
-  // ==================== STEP 2: RANK IDENTITIES ====================
-  function renderStep2() {
-    const source = $('identity-rank-source');
-    const target = $('identity-rank-target');
-
-    // Render source items (non-ranked identities)
-    source.innerHTML = state.identities.filter(i => !i.isTopThree).map(i => `
-      <div class="rank-item" data-id="${i.id}" draggable="true">
-        ${escapeHtml(i.name)}
-      </div>
-    `).join('');
-
-    // Render target slots
-    const slots = target.querySelectorAll('.rank-slot');
-    slots.forEach(slot => {
-      const slotNum = parseInt(slot.dataset.slot);
-      const identity = state.identities.find(i => i.topRank === slotNum);
-
-      if (identity) {
-        slot.innerHTML = `<span class="slot-content">${escapeHtml(identity.name)} <button class="slot-remove" data-id="${identity.id}">&times;</button></span>`;
-        slot.classList.add('filled');
-      } else {
-        slot.innerHTML = `<span class="slot-number">${slotNum}</span>`;
-        slot.classList.remove('filled');
-      }
-    });
-
-    // Setup drag events for source items
-    source.querySelectorAll('.rank-item').forEach(item => {
-      item.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', item.dataset.id);
-        item.classList.add('dragging');
-      });
-      item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    });
-
-    // Setup drop events for slots
-    slots.forEach(slot => {
-      slot.addEventListener('dragover', e => {
-        e.preventDefault();
-        slot.classList.add('drag-over');
-      });
-      slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
-      slot.addEventListener('drop', e => {
-        e.preventDefault();
-        slot.classList.remove('drag-over');
-        handleIdentityRank(e.dataTransfer.getData('text/plain'), parseInt(slot.dataset.slot));
-      });
-    });
-
-    // Remove buttons
-    target.querySelectorAll('.slot-remove').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const identity = state.identities.find(i => i.id === btn.dataset.id);
-        if (identity) {
-          identity.isTopThree = false;
-          identity.topRank = null;
-          renderStep2();
-          saveSession();
-        }
-      });
-    });
-
-    updateStep2NextButton();
-  }
-
-  function handleIdentityRank(identityId, slotNum) {
-    // Clear existing identity in this slot
-    state.identities.forEach(i => {
-      if (i.topRank === slotNum) {
-        i.isTopThree = false;
-        i.topRank = null;
-      }
-    });
-
-    // Set new rank
-    const identity = state.identities.find(i => i.id === identityId);
-    if (identity) {
-      // Clear old slot if any
-      identity.isTopThree = true;
-      identity.topRank = slotNum;
-    }
-
-    renderStep2();
-    saveSession();
-  }
-
-  function updateStep2NextButton() {
-    const topThree = state.identities.filter(i => i.isTopThree);
-    $('step2-next').disabled = topThree.length < 3;
-    $('identity-rank-hint').classList.toggle('hidden', topThree.length >= 3);
-  }
-
-  // ==================== STEP 3: IDENTITY STRENGTH ====================
-  function renderStep3() {
-    const container = $('identity-strength-container');
-    const topIdentities = state.identities.filter(i => i.isTopThree).sort((a, b) => a.topRank - b.topRank);
-
-    container.innerHTML = topIdentities.map(identity => {
-      const strength = state.identityStrength[identity.id] || {};
-
-      return `
-        <div class="strength-card">
-          <h3>${escapeHtml(identity.name)}</h3>
-
-          <div class="slider-group">
-            <label>Centrality: "This identity is central to who I am"</label>
-            <div class="slider-row">
-              <span>1</span>
-              <input type="range" min="1" max="7" value="${strength.centrality || 4}"
-                     data-id="${identity.id}" data-field="centrality">
-              <span>7</span>
-              <span class="slider-value">${strength.centrality || 4}</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>Solidarity/Belonging: "I feel connected to others who share this identity"</label>
-            <div class="slider-row">
-              <span>1</span>
-              <input type="range" min="1" max="7" value="${strength.solidarity || 4}"
-                     data-id="${identity.id}" data-field="solidarity">
-              <span>7</span>
-              <span class="slider-value">${strength.solidarity || 4}</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>Satisfaction/Positive affect: "I feel good about having this identity"</label>
-            <div class="slider-row">
-              <span>1</span>
-              <input type="range" min="1" max="7" value="${strength.satisfaction || 4}"
-                     data-id="${identity.id}" data-field="satisfaction">
-              <span>7</span>
-              <span class="slider-value">${strength.satisfaction || 4}</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>Stability: "This identity feels stable over time (not easily shaken)"</label>
-            <div class="slider-row">
-              <span>1</span>
-              <input type="range" min="1" max="7" value="${strength.stability || 4}"
-                     data-id="${identity.id}" data-field="stability">
-              <span>7</span>
-              <span class="slider-value">${strength.stability || 4}</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('input[type="range"]').forEach(input => {
-      const updateValue = () => {
-        input.parentElement.querySelector('.slider-value').textContent = input.value;
-        const id = input.dataset.id;
-        const field = input.dataset.field;
-        if (!state.identityStrength[id]) state.identityStrength[id] = {};
-        state.identityStrength[id][field] = parseInt(input.value);
-        saveSession();
-      };
-      input.addEventListener('input', updateValue);
-      updateValue();
-    });
-  }
-
-  // ==================== STEP 4: ADD COMMUNITIES ====================
+  // ==================== STEP 1: ADD COMMUNITIES ====================
   function addCommunity() {
     const input = $('new-community-input');
     const name = input.value.trim();
@@ -498,43 +236,40 @@
     state.communities.push({
       id: generateId('c_'),
       name: name,
-      setting: null,
-      isTopThree: false,
-      topRank: null
+      importance: null,
+      positivity: null,
+      contact: null,
+      tenure: null,
+      representativeness: null,
+      x: null,
+      y: null
     });
 
     input.value = '';
     input.focus();
-    renderStep4();
+    renderStep1();
     saveSession();
   }
 
   function removeCommunity(communityId) {
     state.communities = state.communities.filter(c => c.id !== communityId);
-    delete state.belongingUncertainty[communityId];
-    delete state.communityParticipation[communityId];
-    delete state.informationNorms[communityId];
-    delete state.mapPositions[communityId];
-    renderStep4();
+    state.connections = state.connections.filter(c => c.from !== communityId && c.to !== communityId);
+    renderStep1();
     saveSession();
   }
 
-  function renderStep4() {
+  function renderStep1() {
     const list = $('communities-list');
     const count = $('communities-count');
     const hint = $('communities-hint');
 
     count.textContent = state.communities.length;
     hint.classList.toggle('hidden', state.communities.length >= 3);
-    $('step4-next').disabled = state.communities.length < 3 || !state.communities.every(c => c.setting !== null);
+    $('step1-next').disabled = state.communities.length < 3;
 
     list.innerHTML = state.communities.map(c => `
       <div class="community-item" data-id="${c.id}">
         <span class="community-name">${escapeHtml(c.name)}</span>
-        <select class="setting-select" data-id="${c.id}">
-          <option value="">Select setting...</option>
-          ${COMMUNITY_SETTINGS.map(s => `<option value="${s.value}" ${c.setting === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
-        </select>
         <button class="remove-btn" data-id="${c.id}" title="Remove">&times;</button>
       </div>
     `).join('');
@@ -542,566 +277,527 @@
     list.querySelectorAll('.remove-btn').forEach(btn => {
       btn.addEventListener('click', () => removeCommunity(btn.dataset.id));
     });
-
-    list.querySelectorAll('.setting-select').forEach(select => {
-      select.addEventListener('change', () => {
-        const community = state.communities.find(c => c.id === select.dataset.id);
-        if (community) {
-          community.setting = select.value || null;
-          renderStep4();
-          saveSession();
-        }
-      });
-    });
   }
 
-  // ==================== STEP 5: RANK COMMUNITIES ====================
-  function renderStep5() {
-    const source = $('community-rank-source');
-    const target = $('community-rank-target');
+  // ==================== STEP 2: COMMUNITY DETAILS ====================
+  function renderStep2() {
+    const tbody = $('details-tbody');
 
-    source.innerHTML = state.communities.filter(c => !c.isTopThree).map(c => `
-      <div class="rank-item community" data-id="${c.id}" draggable="true">
-        ${escapeHtml(c.name)}
-      </div>
+    tbody.innerHTML = state.communities.map(c => `
+      <tr data-id="${c.id}">
+        <td>${escapeHtml(c.name)}</td>
+        <td>
+          <select class="importance-select" data-id="${c.id}">
+            <option value="">Select...</option>
+            <option value="high" ${c.importance === 'high' ? 'selected' : ''}>Very Important</option>
+            <option value="medium" ${c.importance === 'medium' ? 'selected' : ''}>Moderate</option>
+            <option value="low" ${c.importance === 'low' ? 'selected' : ''}>Less Important</option>
+          </select>
+        </td>
+        <td><input type="number" min="1" max="10" ${c.positivity !== null ? `value="${c.positivity}"` : ''} data-field="positivity" placeholder="1-10"></td>
+        <td><input type="number" min="0" max="30" ${c.contact !== null ? `value="${c.contact}"` : ''} data-field="contact" placeholder="0-30"></td>
+        <td><input type="number" min="0" step="0.5" ${c.tenure !== null ? `value="${c.tenure}"` : ''} data-field="tenure" placeholder="years"></td>
+        <td><input type="number" min="1" max="10" ${c.representativeness !== null ? `value="${c.representativeness}"` : ''} data-field="representativeness" placeholder="1-10"></td>
+      </tr>
     `).join('');
 
-    const slots = target.querySelectorAll('.rank-slot');
-    slots.forEach(slot => {
-      const slotNum = parseInt(slot.dataset.slot);
-      const community = state.communities.find(c => c.topRank === slotNum);
-
-      if (community) {
-        slot.innerHTML = `<span class="slot-content">${escapeHtml(community.name)} <button class="slot-remove" data-id="${community.id}">&times;</button></span>`;
-        slot.classList.add('filled');
-      } else {
-        slot.innerHTML = `<span class="slot-number">${slotNum}</span>`;
-        slot.classList.remove('filled');
-      }
-    });
-
-    source.querySelectorAll('.rank-item').forEach(item => {
-      item.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', item.dataset.id);
-        item.classList.add('dragging');
-      });
-      item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    });
-
-    slots.forEach(slot => {
-      slot.addEventListener('dragover', e => {
-        e.preventDefault();
-        slot.classList.add('drag-over');
-      });
-      slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
-      slot.addEventListener('drop', e => {
-        e.preventDefault();
-        slot.classList.remove('drag-over');
-        handleCommunityRank(e.dataTransfer.getData('text/plain'), parseInt(slot.dataset.slot));
-      });
-    });
-
-    target.querySelectorAll('.slot-remove').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const community = state.communities.find(c => c.id === btn.dataset.id);
+    // Handle importance changes
+    tbody.querySelectorAll('.importance-select').forEach(select => {
+      select.addEventListener('change', () => {
+        const row = select.closest('tr');
+        const communityId = row.dataset.id;
+        const community = state.communities.find(c => c.id === communityId);
         if (community) {
-          community.isTopThree = false;
-          community.topRank = null;
-          renderStep5();
+          community.importance = select.value || null;
+          updateStep2NextButton();
           saveSession();
         }
       });
     });
 
-    updateStep5NextButton();
+    // Handle input changes
+    tbody.querySelectorAll('input').forEach(input => {
+      input.addEventListener('change', () => {
+        const row = input.closest('tr');
+        const communityId = row.dataset.id;
+        const field = input.dataset.field;
+        const value = input.value ? parseFloat(input.value) : null;
+
+        const community = state.communities.find(c => c.id === communityId);
+        if (community) {
+          community[field] = value;
+          saveSession();
+        }
+      });
+    });
+
+    updateStep2NextButton();
   }
 
-  function handleCommunityRank(communityId, slotNum) {
-    state.communities.forEach(c => {
-      if (c.topRank === slotNum) {
-        c.isTopThree = false;
-        c.topRank = null;
+  function updateStep2NextButton() {
+    const allHaveImportance = state.communities.every(c => c.importance !== null);
+    $('step2-next').disabled = !allHaveImportance;
+    $('details-hint').classList.toggle('hidden', allHaveImportance);
+  }
+
+  // ==================== STEP 3: POSITION GROUPS ====================
+  function renderStep3() {
+    const canvas = $('groups-canvas-3');
+    const container = $('canvas-container-step3');
+    const tutorial = $('drag-tutorial-3');
+
+    // Initialize positions if not set
+    const containerRect = container.getBoundingClientRect();
+    const centerX = containerRect.width / 2;
+    const centerY = containerRect.height / 2;
+
+    state.communities.forEach((c, i) => {
+      if (c.x === null || c.y === null) {
+        // Spread communities around center
+        const angle = (i / state.communities.length) * 2 * Math.PI;
+        const radius = Math.min(centerX, centerY) * 0.6;
+        c.x = centerX + Math.cos(angle) * radius - 50;
+        c.y = centerY + Math.sin(angle) * radius - 50;
       }
     });
+
+    renderGroupCards(canvas, true);
+
+    // Show tutorial once
+    if (!state.tutorialStep3Shown) {
+      tutorial.classList.remove('hidden');
+      tutorial.addEventListener('click', () => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep3Shown = true;
+        saveSession();
+      }, { once: true });
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep3Shown = true;
+        saveSession();
+      }, 3000);
+    } else {
+      tutorial.classList.add('hidden');
+    }
+  }
+
+  function renderGroupCards(canvas, draggable = false) {
+    renderGroupCardsWithState(canvas, state, draggable);
+  }
+
+  function renderGroupCardsWithState(canvas, stateObj, draggable = false) {
+    canvas.innerHTML = '';
+
+    stateObj.communities.forEach(c => {
+      const card = document.createElement('div');
+      card.className = `group-card size-${c.importance || 'medium'}`;
+      card.dataset.id = c.id;
+      card.style.left = c.x + 'px';
+      card.style.top = c.y + 'px';
+
+      const displayVal = v => v !== null && v !== undefined ? v : '?';
+
+      card.innerHTML = `
+        <span class="card-corner tl">${displayVal(c.positivity)}</span>
+        <span class="card-corner tr">${displayVal(c.contact)}</span>
+        <span class="card-name">${escapeHtml(c.name)}</span>
+        <span class="card-corner bl">${displayVal(c.tenure)}</span>
+        <span class="card-corner br">${displayVal(c.representativeness)}</span>
+      `;
+
+      if (draggable) {
+        card.addEventListener('mousedown', e => startDrag(e, c.id, canvas));
+      }
+
+      canvas.appendChild(card);
+    });
+  }
+
+  // ==================== STEP 4: CONNECTIONS ====================
+  function renderStep4() {
+    const canvas = $('groups-canvas-4');
+    const container = $('canvas-container-step4');
+    const tutorial = $('drag-tutorial-4');
+
+    renderGroupCards(canvas, false);
+    renderConnections();
+
+    // Setup connection drawing from groups
+    canvas.querySelectorAll('.group-card').forEach(card => {
+      card.addEventListener('mousedown', e => startDrawingConnection(e, card.dataset.id, container));
+    });
+
+    // Show tutorial once
+    if (!state.tutorialStep4Shown) {
+      tutorial.classList.remove('hidden');
+      tutorial.addEventListener('click', () => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep4Shown = true;
+        saveSession();
+      }, { once: true });
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        tutorial.classList.add('hidden');
+        state.tutorialStep4Shown = true;
+        saveSession();
+      }, 3000);
+    } else {
+      tutorial.classList.add('hidden');
+    }
+  }
+
+  function renderConnections() {
+    const svg = $('connections-svg');
+    const canvas = $('groups-canvas-4') || $('final-groups-canvas');
+
+    svg.innerHTML = '';
+
+    // Clear old labels
+    const container = svg.parentElement;
+    container.querySelectorAll('.connection-label').forEach(l => l.remove());
+
+    state.connections.forEach(conn => {
+      const fromCommunity = state.communities.find(c => c.id === conn.from);
+      const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+      if (!fromCommunity || !fromCard) return;
+
+      const toCommunity = state.communities.find(c => c.id === conn.to);
+      const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+      if (!toCommunity || !toCard) return;
+
+      const x1 = fromCommunity.x + fromCard.offsetWidth / 2;
+      const y1 = fromCommunity.y + fromCard.offsetHeight / 2;
+      const x2 = toCommunity.x + toCard.offsetWidth / 2;
+      const y2 = toCommunity.y + toCard.offsetHeight / 2;
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('class', `connection-line conn-${conn.type}`);
+      path.setAttribute('d', getConnectionPath(x1, y1, x2, y2, conn.type));
+      path.setAttribute('fill', 'none');
+      path.dataset.from = conn.from;
+      path.dataset.to = conn.to;
+
+      path.addEventListener('click', () => {
+        pendingConnection = { from: conn.from, to: conn.to, existing: true };
+        showConnectionModal();
+      });
+
+      svg.appendChild(path);
+
+      // Add label at midpoint
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const labelText = conn.type === 'easy' ? 'Easy' :
+                        conn.type === 'moderate' ? 'Moderate' : 'Difficult';
+
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'connection-label';
+      labelDiv.style.left = midX + 'px';
+      labelDiv.style.top = midY + 'px';
+      labelDiv.style.transform = 'translate(-50%, -50%)';
+      labelDiv.textContent = labelText;
+
+      container.appendChild(labelDiv);
+    });
+  }
+
+  function getConnectionPath(x1, y1, x2, y2, type) {
+    if (type === 'easy') {
+      return `M ${x1} ${y1} L ${x2} ${y2}`;
+    } else if (type === 'moderate') {
+      // Wavy line
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const amp = 15;
+      const waves = Math.max(2, Math.floor(dist / 50));
+
+      let d = `M ${x1} ${y1}`;
+      for (let i = 1; i <= waves * 2; i++) {
+        const t = i / (waves * 2);
+        const px = x1 + dx * t;
+        const py = y1 + dy * t;
+        const offset = amp * (i % 2 === 0 ? 1 : -1);
+        const perpX = -dy / dist * offset;
+        const perpY = dx / dist * offset;
+
+        if (i === waves * 2) {
+          d += ` L ${x2} ${y2}`;
+        } else {
+          d += ` Q ${px + perpX} ${py + perpY} ${x1 + dx * (t + 0.5 / (waves * 2))} ${y1 + dy * (t + 0.5 / (waves * 2))}`;
+        }
+      }
+      return d;
+    } else {
+      // Jagged line
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const amp = 12;
+      const segments = Math.max(3, Math.floor(dist / 30));
+
+      let d = `M ${x1} ${y1}`;
+      for (let i = 1; i <= segments; i++) {
+        const t = i / segments;
+        const px = x1 + dx * t;
+        const py = y1 + dy * t;
+
+        if (i < segments) {
+          const offset = amp * (i % 2 === 0 ? 1 : -1);
+          const perpX = -dy / dist * offset;
+          const perpY = dx / dist * offset;
+          d += ` L ${px + perpX} ${py + perpY}`;
+        } else {
+          d += ` L ${x2} ${y2}`;
+        }
+      }
+      return d;
+    }
+  }
+
+  function startDrawingConnection(e, communityId, container) {
+    e.preventDefault();
+    e.stopPropagation();
 
     const community = state.communities.find(c => c.id === communityId);
-    if (community) {
-      community.isTopThree = true;
-      community.topRank = slotNum;
+    const card = container.querySelector(`[data-id="${communityId}"]`);
+    const startX = community.x + card.offsetWidth / 2;
+    const startY = community.y + card.offsetHeight / 2;
+
+    drawingConnection = {
+      fromId: communityId,
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY,
+      container
+    };
+
+    updateDrawingLine();
+  }
+
+  function updateDrawingLine() {
+    const svg = $('drawing-svg');
+    if (!drawingConnection) {
+      svg.innerHTML = '';
+      return;
     }
 
-    renderStep5();
-    saveSession();
+    svg.innerHTML = `
+      <line x1="${drawingConnection.startX}" y1="${drawingConnection.startY}"
+            x2="${drawingConnection.currentX}" y2="${drawingConnection.currentY}" />
+    `;
   }
 
-  function updateStep5NextButton() {
-    const topThree = state.communities.filter(c => c.isTopThree);
-    $('step5-next').disabled = topThree.length < 3;
-    $('community-rank-hint').classList.toggle('hidden', topThree.length >= 3);
-  }
-
-  // ==================== STEP 6: BELONGING UNCERTAINTY ====================
-  function renderStep6() {
-    const container = $('belonging-container');
-    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
-
-    container.innerHTML = topCommunities.map(community => {
-      const belonging = state.belongingUncertainty[community.id] || {};
-
-      return `
-        <div class="belonging-card">
-          <h3>${escapeHtml(community.name)}</h3>
-
-          <div class="likert-group">
-            <label>Sometimes I feel that I belong at <strong>${escapeHtml(community.name)}</strong>, and sometimes I feel that I don't belong.</label>
-            <div class="likert-scale">
-              ${LIKERT_SCALE.map(opt => `
-                <label class="likert-option">
-                  <input type="radio" name="belong-sometimes-${community.id}" value="${opt.value}"
-                         ${belonging.belongSometimes === opt.value ? 'checked' : ''}
-                         data-id="${community.id}" data-field="belongSometimes">
-                  <span class="likert-label">${opt.value}</span>
-                  <span class="likert-text">${opt.label}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="likert-group">
-            <label>When something bad happens, I feel that maybe I don't belong at <strong>${escapeHtml(community.name)}</strong>.</label>
-            <div class="likert-scale">
-              ${LIKERT_SCALE.map(opt => `
-                <label class="likert-option">
-                  <input type="radio" name="belong-bad-${community.id}" value="${opt.value}"
-                         ${belonging.belongBad === opt.value ? 'checked' : ''}
-                         data-id="${community.id}" data-field="belongBad">
-                  <span class="likert-label">${opt.value}</span>
-                  <span class="likert-text">${opt.label}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="likert-group">
-            <label>When something good happens, I feel that I really belong at <strong>${escapeHtml(community.name)}</strong>.</label>
-            <div class="likert-scale">
-              ${LIKERT_SCALE.map(opt => `
-                <label class="likert-option">
-                  <input type="radio" name="belong-good-${community.id}" value="${opt.value}"
-                         ${belonging.belongGood === opt.value ? 'checked' : ''}
-                         data-id="${community.id}" data-field="belongGood">
-                  <span class="likert-label">${opt.value}</span>
-                  <span class="likert-text">${opt.label}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('input[type="radio"]').forEach(input => {
-      input.addEventListener('change', () => {
-        const id = input.dataset.id;
-        const field = input.dataset.field;
-        if (!state.belongingUncertainty[id]) state.belongingUncertainty[id] = {};
-        state.belongingUncertainty[id][field] = parseInt(input.value);
-        saveSession();
-      });
-    });
-  }
-
-  // ==================== STEP 7: COMMUNITY PARTICIPATION ====================
-  function renderStep7() {
-    const container = $('participation-container');
-    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
-
-    container.innerHTML = topCommunities.map(community => {
-      const participation = state.communityParticipation[community.id] || { boundaryMarkers: [] };
-
-      return `
-        <div class="participation-card">
-          <h3>${escapeHtml(community.name)}</h3>
-
-          <div class="slider-group">
-            <label>How hard is it for a newcomer to legitimately participate in this community?</label>
-            <div class="slider-row">
-              <span>1 (Easy)</span>
-              <input type="range" min="1" max="7" value="${participation.difficulty || 4}"
-                     data-id="${community.id}" data-field="difficulty">
-              <span>7 (Hard)</span>
-              <span class="slider-value">${participation.difficulty || 4}</span>
-            </div>
-          </div>
-
-          <div class="checkbox-group">
-            <label>What differentiates people in this community (in-group) from outsiders? (Select all that apply)</label>
-            <div class="checkbox-grid">
-              ${BOUNDARY_MARKERS.map(marker => `
-                <label class="checkbox-option">
-                  <input type="checkbox" value="${marker.value}"
-                         ${participation.boundaryMarkers && participation.boundaryMarkers.includes(marker.value) ? 'checked' : ''}
-                         data-id="${community.id}" data-field="boundaryMarkers">
-                  ${marker.label}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('input[type="range"]').forEach(input => {
-      const updateValue = () => {
-        input.parentElement.querySelector('.slider-value').textContent = input.value;
-        const id = input.dataset.id;
-        if (!state.communityParticipation[id]) state.communityParticipation[id] = { boundaryMarkers: [] };
-        state.communityParticipation[id].difficulty = parseInt(input.value);
-        saveSession();
-      };
-      input.addEventListener('input', updateValue);
-    });
-
-    container.querySelectorAll('input[type="checkbox"]').forEach(input => {
-      input.addEventListener('change', () => {
-        const id = input.dataset.id;
-        if (!state.communityParticipation[id]) state.communityParticipation[id] = { boundaryMarkers: [] };
-        if (!state.communityParticipation[id].boundaryMarkers) state.communityParticipation[id].boundaryMarkers = [];
-
-        if (input.checked) {
-          if (!state.communityParticipation[id].boundaryMarkers.includes(input.value)) {
-            state.communityParticipation[id].boundaryMarkers.push(input.value);
-          }
-        } else {
-          state.communityParticipation[id].boundaryMarkers = state.communityParticipation[id].boundaryMarkers.filter(v => v !== input.value);
-        }
-        saveSession();
-      });
-    });
-  }
-
-  // ==================== STEP 8: INFORMATION NORMS ====================
-  function renderStep8() {
-    const container = $('info-norms-container');
-    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
-
-    container.innerHTML = topCommunities.map(community => {
-      const norms = state.informationNorms[community.id] || { keepUpMethods: [] };
-
-      return `
-        <div class="info-norms-card">
-          <h3>${escapeHtml(community.name)}</h3>
-
-          <div class="slider-group">
-            <label>"To be taken seriously here, you need to know the community's language (terms/memes/ways of speaking)"</label>
-            <div class="slider-row">
-              <span>1 (Strongly disagree)</span>
-              <input type="range" min="1" max="7" value="${norms.languageNeeded || 4}"
-                     data-id="${community.id}" data-field="languageNeeded">
-              <span>7 (Strongly agree)</span>
-              <span class="slider-value">${norms.languageNeeded || 4}</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>"I've put effort into learning that language"</label>
-            <div class="slider-row">
-              <span>1 (Strongly disagree)</span>
-              <input type="range" min="1" max="7" value="${norms.effortLearning || 4}"
-                     data-id="${community.id}" data-field="effortLearning">
-              <span>7 (Strongly agree)</span>
-              <span class="slider-value">${norms.effortLearning || 4}</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>"There are sources (news/accounts/sites) you're expected to follow to 'get it'"</label>
-            <div class="slider-row">
-              <span>1 (Strongly disagree)</span>
-              <input type="range" min="1" max="7" value="${norms.sourcesExpected || 4}"
-                     data-id="${community.id}" data-field="sourcesExpected">
-              <span>7 (Strongly agree)</span>
-              <span class="slider-value">${norms.sourcesExpected || 4}</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>"Using the 'wrong' sources or framing gets judged here"</label>
-            <div class="slider-row">
-              <span>1 (Strongly disagree)</span>
-              <input type="range" min="1" max="7" value="${norms.wrongSourcesJudged || 4}"
-                     data-id="${community.id}" data-field="wrongSourcesJudged">
-              <span>7 (Strongly agree)</span>
-              <span class="slider-value">${norms.wrongSourcesJudged || 4}</span>
-            </div>
-          </div>
-
-          <div class="checkbox-group">
-            <label>"How do you usually keep up?" (Choose up to 3)</label>
-            <div class="checkbox-grid">
-              ${KEEP_UP_METHODS.map(method => `
-                <label class="checkbox-option">
-                  <input type="checkbox" value="${method.value}"
-                         ${norms.keepUpMethods && norms.keepUpMethods.includes(method.value) ? 'checked' : ''}
-                         data-id="${community.id}" data-field="keepUpMethods">
-                  ${method.label}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="text-group">
-            <label>Name up to 3 sources/places/people that help you "stay fluent" in this community:</label>
-            <textarea data-id="${community.id}" data-field="fluencySources"
-                      placeholder="e.g., @username, subreddit, podcast name...">${norms.fluencySources || ''}</textarea>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('input[type="range"]').forEach(input => {
-      const updateValue = () => {
-        input.parentElement.querySelector('.slider-value').textContent = input.value;
-        const id = input.dataset.id;
-        const field = input.dataset.field;
-        if (!state.informationNorms[id]) state.informationNorms[id] = { keepUpMethods: [] };
-        state.informationNorms[id][field] = parseInt(input.value);
-        saveSession();
-      };
-      input.addEventListener('input', updateValue);
-    });
-
-    container.querySelectorAll('input[type="checkbox"]').forEach(input => {
-      input.addEventListener('change', () => {
-        const id = input.dataset.id;
-        if (!state.informationNorms[id]) state.informationNorms[id] = { keepUpMethods: [] };
-        if (!state.informationNorms[id].keepUpMethods) state.informationNorms[id].keepUpMethods = [];
-
-        if (input.checked) {
-          if (state.informationNorms[id].keepUpMethods.length < 3) {
-            state.informationNorms[id].keepUpMethods.push(input.value);
-          } else {
-            input.checked = false;
-            return;
-          }
-        } else {
-          state.informationNorms[id].keepUpMethods = state.informationNorms[id].keepUpMethods.filter(v => v !== input.value);
-        }
-        saveSession();
-      });
-    });
-
-    container.querySelectorAll('textarea').forEach(textarea => {
-      textarea.addEventListener('input', () => {
-        const id = textarea.dataset.id;
-        if (!state.informationNorms[id]) state.informationNorms[id] = { keepUpMethods: [] };
-        state.informationNorms[id].fluencySources = textarea.value;
-        saveSession();
-      });
-    });
-  }
-
-  // ==================== STEP 9: COORDINATE MAP ====================
-  // Note: Positions are stored as percentages (0-1) to ensure consistency across different container sizes
-
-  function renderStep9() {
-    const canvas = $('coordinate-canvas');
-    const container = $('canvas-container-step9');
-
-    canvas.innerHTML = '';
-
-    const topIdentities = state.identities.filter(i => i.isTopThree).sort((a, b) => a.topRank - b.topRank);
-    const topCommunities = state.communities.filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
-
-    // Get container dimensions
-    const containerRect = container.getBoundingClientRect();
-
-    // Helper to convert old pixel positions to percentages if needed
-    function normalizePosition(pos, containerWidth, containerHeight) {
-      // If values are > 1, they're old pixel values - convert to percentages
-      if (pos.x > 1 || pos.y > 1) {
-        return {
-          x: Math.min(1, Math.max(0, pos.x / 800)), // Assume old container was ~800px wide
-          y: Math.min(1, Math.max(0, pos.y / 600))  // Assume old container was ~600px tall
-        };
-      }
-      return pos;
+  function finishDrawingConnection(toCommunityId) {
+    if (!drawingConnection || drawingConnection.fromId === toCommunityId) {
+      drawingConnection = null;
+      updateDrawingLine();
+      return;
     }
 
-    // Initialize positions if not set (as percentages 0-1)
-    topIdentities.forEach((identity, i) => {
-      if (!state.mapPositions[identity.id]) {
-        const angle = (i / 3) * Math.PI - Math.PI / 2;
-        state.mapPositions[identity.id] = {
-          x: 0.5 + Math.cos(angle) * 0.15,
-          y: 0.5 + Math.sin(angle) * 0.15
-        };
-      } else {
-        // Normalize existing positions
-        state.mapPositions[identity.id] = normalizePosition(state.mapPositions[identity.id], containerRect.width, containerRect.height);
-      }
-    });
+    // Normalize connection order (alphabetically by id)
+    let fromId = drawingConnection.fromId;
+    let toId = toCommunityId;
+    if (fromId > toId) {
+      [fromId, toId] = [toId, fromId];
+    }
 
-    topCommunities.forEach((community, i) => {
-      if (!state.mapPositions[community.id]) {
-        const angle = ((i + 3) / 6) * 2 * Math.PI + Math.PI / 6;
-        state.mapPositions[community.id] = {
-          x: 0.5 + Math.cos(angle) * 0.2,
-          y: 0.5 + Math.sin(angle) * 0.2
-        };
-      } else {
-        // Normalize existing positions
-        state.mapPositions[community.id] = normalizePosition(state.mapPositions[community.id], containerRect.width, containerRect.height);
-      }
-    });
+    // Check if connection already exists
+    const existing = state.connections.find(c =>
+      (c.from === fromId && c.to === toId) ||
+      (c.from === toId && c.to === fromId)
+    );
 
-    // Render identity markers (dots)
-    topIdentities.forEach(identity => {
-      const pos = state.mapPositions[identity.id];
-      const marker = document.createElement('div');
-      marker.className = 'map-marker identity-marker';
-      marker.dataset.id = identity.id;
-      marker.style.left = (pos.x * containerRect.width) + 'px';
-      marker.style.top = (pos.y * containerRect.height) + 'px';
-      marker.innerHTML = `
-        <span class="marker-label">${escapeHtml(identity.name)}</span>
-        <span class="marker-dot"></span>
-      `;
+    pendingConnection = {
+      from: fromId,
+      to: toId,
+      existing: !!existing
+    };
 
-      marker.addEventListener('mousedown', e => startMapDrag(e, identity.id, canvas, container));
-      canvas.appendChild(marker);
-    });
+    drawingConnection = null;
+    updateDrawingLine();
+    showConnectionModal();
+  }
 
-    // Render community markers (squares)
-    topCommunities.forEach(community => {
-      const pos = state.mapPositions[community.id];
-      const marker = document.createElement('div');
-      marker.className = 'map-marker community-marker';
-      marker.dataset.id = community.id;
-      marker.style.left = (pos.x * containerRect.width) + 'px';
-      marker.style.top = (pos.y * containerRect.height) + 'px';
-      marker.innerHTML = `
-        <span class="marker-label">${escapeHtml(community.name)}</span>
-        <span class="marker-square"></span>
-      `;
+  function showConnectionModal() {
+    const fromCommunity = state.communities.find(c => c.id === pendingConnection.from);
+    const toCommunity = state.communities.find(c => c.id === pendingConnection.to);
 
-      marker.addEventListener('mousedown', e => startMapDrag(e, community.id, canvas, container));
-      canvas.appendChild(marker);
+    const questionText = `How easy would it be to discuss the same news topic across <strong>${fromCommunity.name}</strong> and <strong>${toCommunity.name}</strong>?`;
+
+    $('modal-question').innerHTML = questionText;
+    $('remove-conn-btn').classList.toggle('hidden', !pendingConnection.existing);
+    $('connection-modal').classList.remove('hidden');
+  }
+
+  function closeConnectionModal() {
+    $('connection-modal').classList.add('hidden');
+    pendingConnection = null;
+  }
+
+  function setConnectionType(type) {
+    if (!pendingConnection) return;
+
+    // Remove existing connection if any
+    state.connections = state.connections.filter(c =>
+      !((c.from === pendingConnection.from && c.to === pendingConnection.to) ||
+        (c.from === pendingConnection.to && c.to === pendingConnection.from))
+    );
+
+    // Add new connection
+    state.connections.push({
+      from: pendingConnection.from,
+      to: pendingConnection.to,
+      type
     });
 
     saveSession();
+    closeConnectionModal();
+    clearConnectionLabels();
+    renderConnections();
   }
 
-  function startMapDrag(e, itemId, canvas, container) {
-    const marker = canvas.querySelector(`[data-id="${itemId}"]`);
-    const rect = marker.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
+  function removeConnection() {
+    if (!pendingConnection) return;
 
-    dragState = {
-      itemId,
-      canvas,
-      container,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      containerRect
-    };
+    state.connections = state.connections.filter(c =>
+      !((c.from === pendingConnection.from && c.to === pendingConnection.to) ||
+        (c.from === pendingConnection.to && c.to === pendingConnection.from))
+    );
 
-    marker.classList.add('dragging');
+    saveSession();
+    closeConnectionModal();
+    clearConnectionLabels();
+    renderConnections();
   }
 
-  function handleMouseMove(e) {
-    if (!dragState) return;
-
-    const marker = dragState.canvas.querySelector(`[data-id="${dragState.itemId}"]`);
-    if (!marker) return;
-
-    // Get fresh container rect in case of resize
-    const containerRect = dragState.container.getBoundingClientRect();
-
-    let pixelX = e.clientX - containerRect.left - dragState.offsetX;
-    let pixelY = e.clientY - containerRect.top - dragState.offsetY;
-
-    // Constrain to container
-    pixelX = Math.max(0, Math.min(pixelX, containerRect.width - 20));
-    pixelY = Math.max(20, Math.min(pixelY, containerRect.height));
-
-    marker.style.left = pixelX + 'px';
-    marker.style.top = pixelY + 'px';
-
-    // Store as percentages (0-1)
-    state.mapPositions[dragState.itemId] = {
-      x: pixelX / containerRect.width,
-      y: pixelY / containerRect.height
-    };
+  function clearConnectionLabels() {
+    $$('.connection-label').forEach(l => l.remove());
   }
 
-  function handleMouseUp() {
-    if (dragState) {
-      const marker = dragState.canvas.querySelector(`[data-id="${dragState.itemId}"]`);
-      if (marker) marker.classList.remove('dragging');
-      dragState = null;
-      saveSession();
-    }
-  }
+  // ==================== STEP 5: COMPLETE ====================
+  function renderStep5() {
+    $('final-communities').textContent = state.communities.length;
+    $('final-connections').textContent = state.connections.length;
 
-  // ==================== STEP 10: COMPLETE ====================
-  function renderStep10() {
-    const topIdentities = state.identities.filter(i => i.isTopThree);
-    const topCommunities = state.communities.filter(c => c.isTopThree);
-
-    $('final-identities').textContent = topIdentities.length;
-    $('final-communities').textContent = topCommunities.length;
-
-    const canvas = $('final-coordinate-canvas');
+    // Render final preview
+    const canvas = $('final-groups-canvas');
+    const svg = $('final-connections-svg');
     const container = $('final-canvas-container');
-    canvas.innerHTML = '';
 
-    // Get container dimensions for converting percentages to pixels
-    const containerRect = container.getBoundingClientRect();
+    // Clear old labels
+    container.querySelectorAll('.connection-label').forEach(l => l.remove());
 
-    // Helper to convert old pixel positions to percentages if needed
-    function normalizePosition(pos) {
-      if (!pos) return null;
-      if (pos.x > 1 || pos.y > 1) {
-        return {
-          x: Math.min(1, Math.max(0, pos.x / 800)),
-          y: Math.min(1, Math.max(0, pos.y / 600))
-        };
-      }
-      return pos;
-    }
+    // Calculate bounds to fit all content
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
 
-    // Render identity markers
-    topIdentities.forEach(identity => {
-      const pos = normalizePosition(state.mapPositions[identity.id]);
-      if (!pos) return;
-
-      const marker = document.createElement('div');
-      marker.className = 'map-marker identity-marker';
-      marker.style.left = (pos.x * containerRect.width) + 'px';
-      marker.style.top = (pos.y * containerRect.height) + 'px';
-      marker.innerHTML = `
-        <span class="marker-label">${escapeHtml(identity.name)}</span>
-        <span class="marker-dot"></span>
-      `;
-      canvas.appendChild(marker);
+    state.communities.forEach(c => {
+      const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+      if (c.x < minX) minX = c.x;
+      if (c.y < minY) minY = c.y;
+      if (c.x + size > maxX) maxX = c.x + size;
+      if (c.y + size > maxY) maxY = c.y + size;
     });
 
-    // Render community markers
-    topCommunities.forEach(community => {
-      const pos = normalizePosition(state.mapPositions[community.id]);
-      if (!pos) return;
+    const contentWidth = maxX - minX + 40;
+    const contentHeight = maxY - minY + 40;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
 
-      const marker = document.createElement('div');
-      marker.className = 'map-marker community-marker';
-      marker.style.left = (pos.x * containerRect.width) + 'px';
-      marker.style.top = (pos.y * containerRect.height) + 'px';
-      marker.innerHTML = `
-        <span class="marker-label">${escapeHtml(community.name)}</span>
-        <span class="marker-square"></span>
-      `;
-      canvas.appendChild(marker);
+    // Calculate scale to fit
+    const scaleX = containerWidth / contentWidth;
+    const scaleY = containerHeight / contentHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+
+    // Apply transform
+    canvas.style.transform = `scale(${scale})`;
+    canvas.style.width = contentWidth + 'px';
+    canvas.style.height = contentHeight + 'px';
+    svg.style.transform = `scale(${scale})`;
+    svg.style.width = contentWidth + 'px';
+    svg.style.height = contentHeight + 'px';
+
+    // Offset to center
+    const offsetX = (containerWidth - contentWidth * scale) / 2;
+    const offsetY = (containerHeight - contentHeight * scale) / 2;
+    canvas.style.transformOrigin = 'top left';
+    canvas.style.left = offsetX + 'px';
+    canvas.style.top = offsetY + 'px';
+    svg.style.transformOrigin = 'top left';
+    svg.style.left = offsetX + 'px';
+    svg.style.top = offsetY + 'px';
+
+    // Adjust positions for rendering (offset by minX, minY)
+    const offsetState = {
+      ...state,
+      communities: state.communities.map(c => ({
+        ...c,
+        x: c.x - minX + 20,
+        y: c.y - minY + 20
+      }))
+    };
+
+    renderGroupCardsWithState(canvas, offsetState);
+
+    // Wait for cards to render before drawing connections
+    requestAnimationFrame(() => {
+      svg.innerHTML = '';
+
+      state.connections.forEach(conn => {
+        const fromCommunity = offsetState.communities.find(c => c.id === conn.from);
+        const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+        if (!fromCommunity || !fromCard) return;
+
+        const toCommunity = offsetState.communities.find(c => c.id === conn.to);
+        const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+        if (!toCommunity || !toCard) return;
+
+        const x1 = fromCommunity.x + fromCard.offsetWidth / 2;
+        const y1 = fromCommunity.y + fromCard.offsetHeight / 2;
+        const x2 = toCommunity.x + toCard.offsetWidth / 2;
+        const y2 = toCommunity.y + toCard.offsetHeight / 2;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('class', `connection-line conn-${conn.type}`);
+        path.setAttribute('d', getConnectionPath(x1, y1, x2, y2, conn.type));
+        path.setAttribute('fill', 'none');
+        svg.appendChild(path);
+      });
+
+      // Add connection labels
+      state.connections.forEach(conn => {
+        const fromCommunity = offsetState.communities.find(c => c.id === conn.from);
+        const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+        if (!fromCommunity || !fromCard) return;
+
+        const toCommunity = offsetState.communities.find(c => c.id === conn.to);
+        const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+        if (!toCommunity || !toCard) return;
+
+        const x1 = fromCommunity.x + fromCard.offsetWidth / 2;
+        const y1 = fromCommunity.y + fromCard.offsetHeight / 2;
+        const x2 = toCommunity.x + toCard.offsetWidth / 2;
+        const y2 = toCommunity.y + toCard.offsetHeight / 2;
+
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        const labelText = conn.type === 'easy' ? 'Easy' :
+                          conn.type === 'moderate' ? 'Moderate' : 'Difficult';
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'connection-label';
+        labelDiv.style.left = midX + 'px';
+        labelDiv.style.top = midY + 'px';
+        labelDiv.style.transform = 'translate(-50%, -50%)';
+        labelDiv.textContent = labelText;
+
+        $('final-canvas-container').appendChild(labelDiv);
+      });
     });
   }
 
@@ -1117,6 +813,72 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  // ==================== DRAG HANDLING ====================
+  function startDrag(e, communityId, canvas) {
+    const card = canvas.querySelector(`[data-id="${communityId}"]`);
+    const rect = card.getBoundingClientRect();
+    const containerRect = canvas.parentElement.getBoundingClientRect();
+
+    dragState = {
+      communityId,
+      canvas,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      containerRect
+    };
+
+    card.classList.add('dragging');
+  }
+
+  function handleMouseMove(e) {
+    if (dragState) {
+      const card = dragState.canvas.querySelector(`[data-id="${dragState.communityId}"]`);
+      const community = state.communities.find(c => c.id === dragState.communityId);
+
+      let x = e.clientX - dragState.containerRect.left - dragState.offsetX;
+      let y = e.clientY - dragState.containerRect.top - dragState.offsetY;
+
+      // Constrain to container
+      x = Math.max(0, Math.min(x, dragState.containerRect.width - card.offsetWidth));
+      y = Math.max(0, Math.min(y, dragState.containerRect.height - card.offsetHeight));
+
+      card.style.left = x + 'px';
+      card.style.top = y + 'px';
+
+      community.x = x;
+      community.y = y;
+    }
+
+    if (drawingConnection) {
+      const rect = drawingConnection.container.getBoundingClientRect();
+      drawingConnection.currentX = e.clientX - rect.left;
+      drawingConnection.currentY = e.clientY - rect.top;
+      updateDrawingLine();
+    }
+  }
+
+  function handleMouseUp(e) {
+    if (dragState) {
+      const card = dragState.canvas.querySelector(`[data-id="${dragState.communityId}"]`);
+      card.classList.remove('dragging');
+      dragState = null;
+      saveSession();
+    }
+
+    if (drawingConnection) {
+      // Check if we're over a group card
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      const card = target?.closest('.group-card');
+
+      if (card && card.dataset.id !== drawingConnection.fromId) {
+        finishDrawingConnection(card.dataset.id);
+      } else {
+        drawingConnection = null;
+        updateDrawingLine();
+      }
+    }
   }
 
   // ==================== UTILITIES ====================

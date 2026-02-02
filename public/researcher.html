@@ -10,7 +10,7 @@
     .researcher-page {
       min-height: 100vh;
       padding: 30px;
-      max-width: 1200px;
+      max-width: 1000px;
       margin: 0 auto;
     }
 
@@ -126,11 +126,6 @@
       font-size: 1.1rem;
     }
 
-    .report-card h3.community-header {
-      color: var(--community-color);
-      border-bottom-color: var(--community-color);
-    }
-
     /* Tables */
     .data-table {
       width: 100%;
@@ -165,69 +160,33 @@
       font-weight: 600;
     }
 
-    .badge-identity {
-      background: var(--identity-color);
+    .badge-high {
+      background: var(--importance-high);
       color: white;
     }
 
-    .badge-community {
-      background: var(--community-color);
+    .badge-medium {
+      background: var(--importance-medium);
       color: white;
     }
 
-    .badge-top {
-      background: var(--success);
+    .badge-low {
+      background: var(--importance-low);
       color: white;
     }
 
-    /* Strength Bars */
-    .strength-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .strength-bar-fill {
-      height: 8px;
-      background: var(--primary);
-      border-radius: 4px;
-    }
-
-    .strength-bar-track {
-      flex: 1;
-      height: 8px;
-      background: var(--border);
-      border-radius: 4px;
-      max-width: 100px;
-    }
-
-    /* Tags */
-    .tag-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .tag {
-      background: var(--bg);
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      color: var(--text);
-    }
-
-    /* Map Preview - 4:3 ratio matching main app */
+    /* Map Preview - square like main app */
     .map-preview {
       width: 100%;
-      max-width: 800px;
-      height: 600px;
+      max-width: 600px;
+      aspect-ratio: 1 / 1;
       margin: 0 auto;
       background: white;
       border: 2px solid var(--border);
       border-radius: 12px;
       position: relative;
       overflow: hidden;
-      background:
+      background-image:
         linear-gradient(var(--border) 1px, transparent 1px),
         linear-gradient(90deg, var(--border) 1px, transparent 1px);
       background-size: 40px 40px;
@@ -241,249 +200,90 @@
       height: 100%;
     }
 
-    /* X-Y axis crosshairs */
-    .map-canvas::before,
-    .map-canvas::after {
-      content: '';
+    /* SVG connections layer */
+    .map-connections {
       position: absolute;
-      background: #aaa;
-    }
-
-    .map-canvas::before {
-      left: 50%;
       top: 0;
-      bottom: 0;
-      width: 2px;
-      transform: translateX(-50%);
-    }
-
-    .map-canvas::after {
-      top: 50%;
       left: 0;
-      right: 0;
-      height: 2px;
-      transform: translateY(-50%);
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
     }
 
-    .map-axis-label {
+    /* Group cards on map */
+    .map-group-card {
       position: absolute;
-      font-size: 11px;
-      color: var(--text-light);
-      background: rgba(255,255,255,0.9);
-      padding: 2px 6px;
-      border-radius: 3px;
-      z-index: 5;
-    }
-
-    /* Map markers - matching main app design exactly */
-    .map-marker {
-      position: absolute;
+      border-radius: 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      cursor: default;
+      justify-content: center;
       user-select: none;
-      z-index: 20;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
+      transform: translate(-50%, -50%);
     }
 
-    .map-marker .marker-label {
-      font-size: 11px;
+    .map-group-card.size-high {
+      width: 90px;
+      height: 90px;
+      background: var(--importance-high);
+    }
+
+    .map-group-card.size-medium {
+      width: 70px;
+      height: 70px;
+      background: var(--importance-medium);
+    }
+
+    .map-group-card.size-low {
+      width: 55px;
+      height: 55px;
+      background: var(--importance-low);
+    }
+
+    .map-group-card .card-name {
+      color: white;
       font-weight: 600;
-      color: var(--text);
-      background: rgba(255,255,255,0.95);
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-bottom: 4px;
-      white-space: nowrap;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-align: center;
+      padding: 4px;
+      font-size: 10px;
+      word-break: break-word;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      line-height: 1.2;
     }
 
-    .map-marker.identity-marker .marker-label {
-      border: 2px solid var(--identity-color);
+    .map-group-card.size-low .card-name {
+      font-size: 9px;
     }
 
-    .map-marker.community-marker .marker-label {
-      border: 2px solid var(--community-color);
+    /* Connection lines */
+    .conn-easy {
+      stroke: var(--conn-color);
+      stroke-width: 3;
+      fill: none;
     }
 
-    .map-marker .marker-dot {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--identity-color);
-      box-shadow: 0 2px 6px rgba(63, 81, 181, 0.4);
+    .conn-moderate {
+      stroke: var(--conn-color);
+      stroke-width: 3;
+      fill: none;
     }
 
-    .map-marker .marker-square {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      background: var(--community-color);
-      box-shadow: 0 2px 6px rgba(249, 168, 37, 0.4);
+    .conn-difficult {
+      stroke: var(--conn-color);
+      stroke-width: 3;
+      fill: none;
     }
 
-    /* Community Detail Sections - Redesigned */
-    .community-section {
-      margin-bottom: 25px;
-      padding-bottom: 25px;
-      border-bottom: 2px solid var(--border);
-    }
-
-    .community-section:last-child {
-      margin-bottom: 0;
-      padding-bottom: 0;
-      border-bottom: none;
-    }
-
-    .community-section-header {
-      display: flex;
+    /* Connections table */
+    .conn-type {
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 8px;
     }
 
-    .community-section-header .rank-badge {
-      background: var(--community-color);
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 12px;
-    }
-
-    .community-section-header h4 {
-      color: var(--text);
-      margin: 0;
-      font-size: 1.1rem;
-    }
-
-    /* Subsection styling */
-    .detail-subsections {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    @media (max-width: 900px) {
-      .detail-subsections {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .detail-subsection {
-      background: var(--bg);
-      border-radius: 8px;
-      padding: 14px;
-    }
-
-    .subsection-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-light);
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Compact metric display */
-    .metric-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .metric-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .metric-score {
-      background: var(--primary);
-      color: white;
-      min-width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 13px;
+    .conn-type svg {
       flex-shrink: 0;
-    }
-
-    .metric-score.na {
-      background: var(--border);
-      color: var(--text-light);
-    }
-
-    .metric-desc {
-      font-size: 12px;
-      color: var(--text);
-      line-height: 1.3;
-    }
-
-    /* Tag list for boundary markers / methods */
-    .tags-row {
-      margin-top: 10px;
-    }
-
-    .tags-label {
-      font-size: 11px;
-      color: var(--text-light);
-      margin-bottom: 6px;
-    }
-
-    .tag-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
-
-    .tag {
-      background: white;
-      border: 1px solid var(--border);
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      color: var(--text);
-    }
-
-    /* Text response */
-    .text-response-section {
-      margin-top: 12px;
-    }
-
-    .text-response-label {
-      font-size: 11px;
-      color: var(--text-light);
-      margin-bottom: 6px;
-    }
-
-    .text-response {
-      background: white;
-      border: 1px solid var(--border);
-      padding: 10px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-    }
-
-    /* Empty state */
-    .empty-metric {
-      color: var(--text-light);
-      font-size: 12px;
-      font-style: italic;
     }
 
     /* Legend */
@@ -494,6 +294,7 @@
       margin-top: 15px;
       padding-top: 15px;
       border-top: 1px solid var(--border);
+      justify-content: center;
     }
 
     .legend-item {
@@ -509,12 +310,16 @@
       border-radius: 4px;
     }
 
-    .legend-box.identity {
-      background: var(--identity-color);
-    }
+    .legend-box.high { background: var(--importance-high); }
+    .legend-box.medium { background: var(--importance-medium); }
+    .legend-box.low { background: var(--importance-low); }
 
-    .legend-box.community {
-      background: var(--community-color);
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      color: var(--text-light);
+      padding: 20px;
+      font-style: italic;
     }
   </style>
 </head>
@@ -544,63 +349,58 @@
         <button class="btn btn-secondary" id="load-another">Load Another File</button>
       </div>
 
-      <!-- Identities Section -->
-      <div class="report-card">
-        <h3>Identities</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Identity</th>
-              <th>Type</th>
-              <th>Top 3</th>
-              <th>Centrality</th>
-              <th>Solidarity</th>
-              <th>Satisfaction</th>
-              <th>Stability</th>
-            </tr>
-          </thead>
-          <tbody id="identities-table"></tbody>
-        </table>
-      </div>
-
       <!-- Communities Section -->
       <div class="report-card">
-        <h3 class="community-header">Communities</h3>
+        <h3>Communities</h3>
         <table class="data-table">
           <thead>
             <tr>
               <th>Community</th>
-              <th>Setting</th>
-              <th>Top 3</th>
+              <th>Importance</th>
+              <th>Positivity</th>
+              <th>Contact (days)</th>
+              <th>Tenure (years)</th>
+              <th>Representativeness</th>
             </tr>
           </thead>
           <tbody id="communities-table"></tbody>
         </table>
       </div>
 
-      <!-- Community Details (for top 3) -->
+      <!-- Position Map Section -->
       <div class="report-card">
-        <h3 class="community-header">Community Details (Top 3)</h3>
-        <div id="community-details"></div>
-      </div>
-
-      <!-- Map Section -->
-      <div class="report-card">
-        <h3>Information Behavior Map</h3>
+        <h3>Position Map</h3>
         <p style="color: var(--text-light); font-size: 13px; margin-bottom: 15px;">
-          X-axis: Type of information (Specialized ↔ General) | Y-axis: Frequency of information seeking
+          Communities positioned by information overlap. Closer groups share more similar information.
         </p>
         <div class="map-preview" id="map-preview">
-          <div class="map-axis-label" style="left: 10px; top: 50%; transform: translateY(-50%);">Specialized</div>
-          <div class="map-axis-label" style="right: 10px; top: 50%; transform: translateY(-50%);">General</div>
-          <div class="map-axis-label" style="top: 10px; left: 50%; transform: translateX(-50%);">High frequency</div>
-          <div class="map-axis-label" style="bottom: 10px; left: 50%; transform: translateX(-50%);">Low frequency</div>
+          <svg class="map-connections" id="map-connections"></svg>
           <div class="map-canvas" id="map-canvas"></div>
         </div>
         <div class="legend">
-          <div class="legend-item"><span class="legend-box identity"></span> Identity</div>
-          <div class="legend-item"><span class="legend-box community"></span> Community</div>
+          <div class="legend-item"><span class="legend-box high"></span> Very Important</div>
+          <div class="legend-item"><span class="legend-box medium"></span> Moderate</div>
+          <div class="legend-item"><span class="legend-box low"></span> Less Important</div>
         </div>
+      </div>
+
+      <!-- Connections Section -->
+      <div class="report-card">
+        <h3>Connections</h3>
+        <p style="color: var(--text-light); font-size: 13px; margin-bottom: 15px;">
+          How easy it would be to discuss the same news topic across groups.
+        </p>
+        <table class="data-table" id="connections-table-container">
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>To</th>
+              <th>Conversation Flow</th>
+            </tr>
+          </thead>
+          <tbody id="connections-table"></tbody>
+        </table>
+        <div class="empty-state hidden" id="no-connections">No connections drawn.</div>
       </div>
     </div>
   </div>
@@ -612,54 +412,16 @@
       const $ = id => document.getElementById(id);
       let loadedData = null;
 
-      // Constants for display
-      const TYPE_LABELS = {
-        'role-group': 'Role-based / Group-based',
-        'personal-trait': 'Personal trait',
-        'belief-value': 'Belief or value',
-        'place-based': 'Place-based',
-        'other': 'Other'
+      const IMPORTANCE_LABELS = {
+        'high': 'Very Important',
+        'medium': 'Moderate',
+        'low': 'Less Important'
       };
 
-      const SETTING_LABELS = {
-        'online': 'Online',
-        'offline': 'Offline',
-        'hybrid': 'Hybrid'
-      };
-
-      const BOUNDARY_LABELS = {
-        'jargon': 'Jargon / lingo',
-        'credentials': 'Credentials / insider knowledge',
-        'sources': 'News sources / information sources',
-        'rituals': 'Rituals / events',
-        'humor': 'Humor / memes',
-        'moral': 'Moral stances',
-        'time': 'Time commitment',
-        'technical': 'Technical skill',
-        'location': 'Physical location'
-      };
-
-      const KEEPUP_LABELS = {
-        'lurk': 'Lurk / read',
-        'ask': 'Ask someone',
-        'follow-accounts': 'Follow key accounts',
-        'newsletters': 'Newsletters',
-        'discord': 'Group chat / Discord',
-        'official': 'Official channels',
-        'campus': 'Campus media',
-        'mainstream': 'Mainstream media',
-        'podcasts': 'Podcasts / YouTube',
-        'other': 'Other'
-      };
-
-      const LIKERT_LABELS = {
-        1: 'Strongly Disagree',
-        2: 'Disagree',
-        3: 'Moderately Disagree',
-        4: 'Neutral',
-        5: 'Moderately Agree',
-        6: 'Agree',
-        7: 'Strongly Agree'
+      const CONNECTION_LABELS = {
+        'easy': 'Easy',
+        'moderate': 'Moderate',
+        'difficult': 'Difficult'
       };
 
       // File upload handling
@@ -718,225 +480,188 @@
         $('report-session').textContent = loadedData.sessionId || 'Unknown';
         $('report-date').textContent = loadedData.createdAt ? new Date(loadedData.createdAt).toLocaleDateString() : '--';
 
-        // Identities table
-        renderIdentitiesTable();
-
         // Communities table
         renderCommunitiesTable();
 
-        // Community details
-        renderCommunityDetails();
-
-        // Map
+        // Position map with connections
         renderMap();
-      }
 
-      function renderIdentitiesTable() {
-        const tbody = $('identities-table');
-        const identities = loadedData.identities || [];
-        const strength = loadedData.identityStrength || {};
-
-        tbody.innerHTML = identities.map(i => {
-          const s = strength[i.id] || {};
-          const isTop = i.isTopThree;
-
-          return `
-            <tr>
-              <td><strong>${escapeHtml(i.name)}</strong></td>
-              <td>${TYPE_LABELS[i.type] || i.type || '--'}</td>
-              <td>${isTop ? `<span class="badge badge-top">#${i.topRank}</span>` : '--'}</td>
-              <td>${isTop ? renderStrengthBar(s.centrality) : '--'}</td>
-              <td>${isTop ? renderStrengthBar(s.solidarity) : '--'}</td>
-              <td>${isTop ? renderStrengthBar(s.satisfaction) : '--'}</td>
-              <td>${isTop ? renderStrengthBar(s.stability) : '--'}</td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      function renderStrengthBar(value) {
-        if (value === undefined || value === null) return '--';
-        const width = (value / 7) * 100;
-        return `
-          <div class="strength-bar">
-            <div class="strength-bar-track">
-              <div class="strength-bar-fill" style="width: ${width}%"></div>
-            </div>
-            <span>${value}/7</span>
-          </div>
-        `;
+        // Connections table
+        renderConnectionsTable();
       }
 
       function renderCommunitiesTable() {
         const tbody = $('communities-table');
         const communities = loadedData.communities || [];
 
+        if (communities.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No communities added.</td></tr>';
+          return;
+        }
+
         tbody.innerHTML = communities.map(c => {
-          const isTop = c.isTopThree;
+          const importanceClass = c.importance || 'medium';
           return `
             <tr>
               <td><strong>${escapeHtml(c.name)}</strong></td>
-              <td>${SETTING_LABELS[c.setting] || c.setting || '--'}</td>
-              <td>${isTop ? `<span class="badge badge-top">#${c.topRank}</span>` : '--'}</td>
+              <td><span class="badge badge-${importanceClass}">${IMPORTANCE_LABELS[c.importance] || '--'}</span></td>
+              <td>${c.positivity !== undefined ? c.positivity + '/10' : '--'}</td>
+              <td>${c.contact !== undefined ? c.contact : '--'}</td>
+              <td>${c.tenure !== undefined ? c.tenure : '--'}</td>
+              <td>${c.representativeness !== undefined ? c.representativeness + '/10' : '--'}</td>
             </tr>
           `;
         }).join('');
       }
 
-      function renderCommunityDetails() {
-        const container = $('community-details');
-        const communities = (loadedData.communities || []).filter(c => c.isTopThree).sort((a, b) => a.topRank - b.topRank);
-        const belonging = loadedData.belongingUncertainty || {};
-        const participation = loadedData.communityParticipation || {};
-        const norms = loadedData.informationNorms || {};
+      function renderMap() {
+        const canvas = $('map-canvas');
+        const svgLayer = $('map-connections');
+        const container = $('map-preview');
 
-        if (communities.length === 0) {
-          container.innerHTML = '<p class="empty-metric">No top communities selected.</p>';
+        canvas.innerHTML = '';
+        svgLayer.innerHTML = '';
+
+        const communities = loadedData.communities || [];
+        const connections = loadedData.connections || [];
+
+        // Get container dimensions
+        const rect = container.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+
+        // Build lookup for community positions
+        const posLookup = {};
+        communities.forEach(c => {
+          if (c.x !== undefined && c.y !== undefined) {
+            // x, y are stored as pixel values relative to original canvas
+            // Convert to percentage then to current container size
+            posLookup[c.id] = {
+              x: (c.x / 800) * width,  // assuming original canvas was 800px
+              y: (c.y / 800) * height
+            };
+          }
+        });
+
+        // Render connections first (behind cards)
+        connections.forEach(conn => {
+          const fromPos = posLookup[conn.from];
+          const toPos = posLookup[conn.to];
+          if (!fromPos || !toPos) return;
+
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', getConnectionPath(fromPos.x, fromPos.y, toPos.x, toPos.y, conn.type));
+          path.setAttribute('class', `conn-${conn.type}`);
+          svgLayer.appendChild(path);
+        });
+
+        // Render community cards
+        communities.forEach(c => {
+          if (c.x === undefined || c.y === undefined) return;
+
+          const pos = posLookup[c.id];
+          if (!pos) return;
+
+          const sizeClass = c.importance || 'medium';
+          const card = document.createElement('div');
+          card.className = `map-group-card size-${sizeClass}`;
+          card.style.left = pos.x + 'px';
+          card.style.top = pos.y + 'px';
+          card.innerHTML = `<span class="card-name">${escapeHtml(c.name)}</span>`;
+          canvas.appendChild(card);
+        });
+      }
+
+      function getConnectionPath(x1, y1, x2, y2, type) {
+        if (type === 'easy') {
+          return `M${x1},${y1} L${x2},${y2}`;
+        } else if (type === 'moderate') {
+          // Wavy line
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const waves = Math.max(2, Math.floor(dist / 40));
+          const perpX = -dy / dist * 10;
+          const perpY = dx / dist * 10;
+
+          let d = `M${x1},${y1}`;
+          for (let i = 1; i <= waves; i++) {
+            const t = i / waves;
+            const mx = x1 + dx * t;
+            const my = y1 + dy * t;
+            const sign = i % 2 === 1 ? 1 : -1;
+            const cx = x1 + dx * (t - 0.5 / waves) + perpX * sign;
+            const cy = y1 + dy * (t - 0.5 / waves) + perpY * sign;
+            d += ` Q${cx},${cy} ${mx},${my}`;
+          }
+          return d;
+        } else {
+          // Jagged line
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const segments = Math.max(3, Math.floor(dist / 25));
+          const perpX = -dy / dist * 8;
+          const perpY = dx / dist * 8;
+
+          let d = `M${x1},${y1}`;
+          for (let i = 1; i <= segments; i++) {
+            const t = i / segments;
+            const px = x1 + dx * t;
+            const py = y1 + dy * t;
+            if (i < segments) {
+              const sign = i % 2 === 1 ? 1 : -1;
+              d += ` L${px + perpX * sign},${py + perpY * sign}`;
+            } else {
+              d += ` L${px},${py}`;
+            }
+          }
+          return d;
+        }
+      }
+
+      function renderConnectionsTable() {
+        const tbody = $('connections-table');
+        const connections = loadedData.connections || [];
+        const communities = loadedData.communities || [];
+
+        // Build lookup
+        const nameLookup = {};
+        communities.forEach(c => { nameLookup[c.id] = c.name; });
+
+        if (connections.length === 0) {
+          $('connections-table-container').classList.add('hidden');
+          $('no-connections').classList.remove('hidden');
           return;
         }
 
-        container.innerHTML = communities.map(c => {
-          const b = belonging[c.id] || {};
-          const p = participation[c.id] || {};
-          const n = norms[c.id] || {};
+        $('connections-table-container').classList.remove('hidden');
+        $('no-connections').classList.add('hidden');
+
+        tbody.innerHTML = connections.map(conn => {
+          const fromName = nameLookup[conn.from] || conn.from;
+          const toName = nameLookup[conn.to] || conn.to;
+          const typeLabel = CONNECTION_LABELS[conn.type] || conn.type;
+          const typeSvg = getConnectionTypeSvg(conn.type);
 
           return `
-            <div class="community-section">
-              <div class="community-section-header">
-                <span class="rank-badge">${c.topRank}</span>
-                <h4>${escapeHtml(c.name)}</h4>
-              </div>
-
-              <div class="detail-subsections">
-                <!-- Belonging Uncertainty -->
-                <div class="detail-subsection">
-                  <div class="subsection-title">Belonging</div>
-                  <div class="metric-grid">
-                    ${renderMetricItem(b.belongSometimes, 'Sometimes belong, sometimes don\'t')}
-                    ${renderMetricItem(b.belongBad, 'Bad times → don\'t belong')}
-                    ${renderMetricItem(b.belongGood, 'Good times → really belong')}
-                  </div>
-                </div>
-
-                <!-- Participation -->
-                <div class="detail-subsection">
-                  <div class="subsection-title">Participation</div>
-                  <div class="metric-grid">
-                    ${renderMetricItem(p.difficulty, 'Newcomer difficulty')}
-                  </div>
-                  ${p.boundaryMarkers && p.boundaryMarkers.length > 0 ? `
-                    <div class="tags-row">
-                      <div class="tags-label">Boundary markers:</div>
-                      <div class="tag-list">
-                        ${p.boundaryMarkers.map(m => `<span class="tag">${BOUNDARY_LABELS[m] || m}</span>`).join('')}
-                      </div>
-                    </div>
-                  ` : ''}
-                </div>
-
-                <!-- Information Norms -->
-                <div class="detail-subsection">
-                  <div class="subsection-title">Info Norms</div>
-                  <div class="metric-grid">
-                    ${renderMetricItem(n.languageNeeded, 'Need community language')}
-                    ${renderMetricItem(n.effortLearning, 'Effort to learn language')}
-                    ${renderMetricItem(n.sourcesExpected, 'Expected sources')}
-                    ${renderMetricItem(n.wrongSourcesJudged, 'Wrong sources judged')}
-                  </div>
-                  ${n.keepUpMethods && n.keepUpMethods.length > 0 ? `
-                    <div class="tags-row">
-                      <div class="tags-label">Keep-up methods:</div>
-                      <div class="tag-list">
-                        ${n.keepUpMethods.map(m => `<span class="tag">${KEEPUP_LABELS[m] || m}</span>`).join('')}
-                      </div>
-                    </div>
-                  ` : ''}
-                  ${n.fluencySources ? `
-                    <div class="text-response-section">
-                      <div class="text-response-label">Fluency sources:</div>
-                      <div class="text-response">${escapeHtml(n.fluencySources)}</div>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            </div>
+            <tr>
+              <td>${escapeHtml(fromName)}</td>
+              <td>${escapeHtml(toName)}</td>
+              <td><span class="conn-type">${typeSvg} ${typeLabel}</span></td>
+            </tr>
           `;
         }).join('');
       }
 
-      function renderMetricItem(value, label) {
-        if (value === undefined || value === null) {
-          return `
-            <div class="metric-item">
-              <span class="metric-score na">-</span>
-              <span class="metric-desc">${label}</span>
-            </div>
-          `;
+      function getConnectionTypeSvg(type) {
+        if (type === 'easy') {
+          return '<svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" stroke="#495057" stroke-width="3"/></svg>';
+        } else if (type === 'moderate') {
+          return '<svg width="40" height="12"><path d="M0,6 Q10,0 20,6 Q30,12 40,6" stroke="#495057" stroke-width="3" fill="none"/></svg>';
+        } else {
+          return '<svg width="40" height="12"><path d="M0,6 L8,1 L16,11 L24,1 L32,11 L40,6" stroke="#495057" stroke-width="3" fill="none"/></svg>';
         }
-        return `
-          <div class="metric-item">
-            <span class="metric-score">${value}</span>
-            <span class="metric-desc">${label}</span>
-          </div>
-        `;
-      }
-
-      function renderMap() {
-        const canvas = $('map-canvas');
-        const container = $('map-preview');
-        canvas.innerHTML = '';
-
-        const topIdentities = (loadedData.identities || []).filter(i => i.isTopThree);
-        const topCommunities = (loadedData.communities || []).filter(c => c.isTopThree);
-        const positions = loadedData.mapPositions || {};
-
-        // Get container dimensions for converting percentages to pixels
-        const containerRect = container.getBoundingClientRect();
-
-        // Helper to convert old pixel positions to percentages if needed
-        function normalizePosition(pos) {
-          if (!pos) return null;
-          // If values are > 1, they're old pixel values - convert to percentages
-          if (pos.x > 1 || pos.y > 1) {
-            return {
-              x: Math.min(1, Math.max(0, pos.x / 800)),
-              y: Math.min(1, Math.max(0, pos.y / 600))
-            };
-          }
-          return pos;
-        }
-
-        // Render identity markers (round dot)
-        topIdentities.forEach(identity => {
-          const pos = normalizePosition(positions[identity.id]);
-          if (!pos) return;
-
-          const marker = document.createElement('div');
-          marker.className = 'map-marker identity-marker';
-          marker.style.left = (pos.x * containerRect.width) + 'px';
-          marker.style.top = (pos.y * containerRect.height) + 'px';
-          marker.innerHTML = `
-            <span class="marker-label">${escapeHtml(identity.name)}</span>
-            <span class="marker-dot"></span>
-          `;
-          canvas.appendChild(marker);
-        });
-
-        // Render community markers (square)
-        topCommunities.forEach(community => {
-          const pos = normalizePosition(positions[community.id]);
-          if (!pos) return;
-
-          const marker = document.createElement('div');
-          marker.className = 'map-marker community-marker';
-          marker.style.left = (pos.x * containerRect.width) + 'px';
-          marker.style.top = (pos.y * containerRect.height) + 'px';
-          marker.innerHTML = `
-            <span class="marker-label">${escapeHtml(community.name)}</span>
-            <span class="marker-square"></span>
-          `;
-          canvas.appendChild(marker);
-        });
       }
 
       function escapeHtml(text) {
