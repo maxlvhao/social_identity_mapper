@@ -1192,11 +1192,12 @@ body {
 }
 
 .topics-panel {
-  width: 140px;
+  width: 200px;
+  min-width: 200px;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
