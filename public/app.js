@@ -444,7 +444,6 @@
     const tutorial = $('drag-tutorial-4');
 
     renderGroupCards(canvas, false);
-    renderPlaceholderConnections();
     renderConnections();
 
     // Setup connection drawing from groups
@@ -469,80 +468,6 @@
       }, 3000);
     } else {
       tutorial.classList.add('hidden');
-    }
-  }
-
-  function renderPlaceholderConnections() {
-    const svg = $('placeholder-connections-svg');
-    const canvas = $('groups-canvas-4');
-    const container = $('canvas-container-step4');
-
-    svg.innerHTML = '';
-
-    // Clear old placeholder labels
-    container.querySelectorAll('.placeholder-label').forEach(l => l.remove());
-
-    // Generate all possible pairs
-    const communities = state.communities;
-    for (let i = 0; i < communities.length; i++) {
-      for (let j = i + 1; j < communities.length; j++) {
-        const c1 = communities[i];
-        const c2 = communities[j];
-
-        // Check if connection already exists
-        const hasConnection = state.connections.some(conn =>
-          (conn.from === c1.id && conn.to === c2.id) ||
-          (conn.from === c2.id && conn.to === c1.id)
-        );
-
-        if (hasConnection) continue;
-
-        // Get positions
-        const card1 = canvas.querySelector(`[data-id="${c1.id}"]`);
-        const card2 = canvas.querySelector(`[data-id="${c2.id}"]`);
-        if (!card1 || !card2) continue;
-
-        const x1 = c1.x + card1.offsetWidth / 2;
-        const y1 = c1.y + card1.offsetHeight / 2;
-        const x2 = c2.x + card2.offsetWidth / 2;
-        const y2 = c2.y + card2.offsetHeight / 2;
-
-        // Draw dashed line
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('class', 'placeholder-connection');
-        line.setAttribute('x1', x1);
-        line.setAttribute('y1', y1);
-        line.setAttribute('x2', x2);
-        line.setAttribute('y2', y2);
-        line.dataset.from = c1.id;
-        line.dataset.to = c2.id;
-
-        // Click to add connection
-        line.addEventListener('click', () => {
-          pendingConnection = { from: c1.id, to: c2.id, existing: false };
-          showConnectionModal();
-        });
-
-        svg.appendChild(line);
-
-        // Add "Click to add" label at midpoint
-        const midX = (x1 + x2) / 2;
-        const midY = (y1 + y2) / 2;
-
-        const label = document.createElement('div');
-        label.className = 'placeholder-label';
-        label.style.left = midX + 'px';
-        label.style.top = midY + 'px';
-        label.textContent = 'Click to add';
-        label.style.pointerEvents = 'auto';
-        label.style.cursor = 'pointer';
-        label.addEventListener('click', () => {
-          pendingConnection = { from: c1.id, to: c2.id, existing: false };
-          showConnectionModal();
-        });
-
-        container.appendChild(label);
-      }
     }
   }
 
@@ -755,7 +680,6 @@
     saveSession();
     closeConnectionModal();
     clearConnectionLabels();
-    renderPlaceholderConnections();
     renderConnections();
   }
 
@@ -770,7 +694,6 @@
     saveSession();
     closeConnectionModal();
     clearConnectionLabels();
-    renderPlaceholderConnections();
     renderConnections();
   }
 
@@ -1002,7 +925,6 @@
     tooltip.className = 'topic-tooltip';
     tooltip.id = 'topic-tooltip-active';
     tooltip.textContent = topic.full;
-    element.style.position = 'relative';
     element.appendChild(tooltip);
   }
 

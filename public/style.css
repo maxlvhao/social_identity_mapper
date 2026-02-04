@@ -1183,10 +1183,12 @@ body {
   gap: 15px;
   flex: 1;
   min-height: 0;
+  justify-content: center;
 }
 
 .canvas-with-panel .canvas-container {
-  flex: 1;
+  /* Keep same size as steps 3 and 4 - don't shrink for panel */
+  flex: 0 0 auto;
 }
 
 .topics-panel {
@@ -1340,42 +1342,6 @@ body {
 
 .topic-delete-zone .delete-icon {
   font-size: 16px;
-}
-
-/* Placeholder connection lines (Step 4) */
-.placeholder-connection {
-  stroke: #adb5bd;
-  stroke-width: 2;
-  stroke-dasharray: 8, 6;
-  fill: none;
-  cursor: pointer;
-  transition: stroke 0.2s;
-  pointer-events: stroke;
-}
-
-.placeholder-connection:hover {
-  stroke: var(--primary);
-  stroke-width: 3;
-}
-
-.placeholder-label {
-  position: absolute;
-  background: rgba(173, 181, 189, 0.9);
-  color: white;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  pointer-events: auto;
-  cursor: pointer;
-  white-space: nowrap;
-  transform: translate(-50%, -50%);
-  transition: background 0.2s, transform 0.2s;
-}
-
-.placeholder-label:hover {
-  background: var(--primary);
-  transform: translate(-50%, -50%) scale(1.05);
 }
 
 /* Topic tooltip */
