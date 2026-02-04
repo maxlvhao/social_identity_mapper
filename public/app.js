@@ -627,7 +627,7 @@
     const fromCommunity = state.communities.find(c => c.id === pendingConnection.from);
     const toCommunity = state.communities.find(c => c.id === pendingConnection.to);
 
-    const questionText = `Would discussions about news between <strong>${fromCommunity.name}</strong> and <strong>${toCommunity.name}</strong> members be easy or challenging?`;
+    const questionText = `Would discussions about news between <strong>${fromCommunity.name}</strong> and <strong>${toCommunity.name}</strong> members be easy or difficult?`;
 
     $('modal-question').innerHTML = questionText;
     $('remove-conn-btn').classList.toggle('hidden', !pendingConnection.existing);
