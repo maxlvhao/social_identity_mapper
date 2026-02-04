@@ -1259,11 +1259,10 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
-  z-index: 5;
+  z-index: 15;
 }
 
-/* Communities should be above topics */
+/* Topics layer should be above communities for interaction */
 .groups-canvas {
   z-index: 10;
 }
@@ -1351,6 +1350,7 @@ body {
   fill: none;
   cursor: pointer;
   transition: stroke 0.2s;
+  pointer-events: stroke;
 }
 
 .placeholder-connection:hover {
@@ -1366,9 +1366,16 @@ body {
   border-radius: 4px;
   font-size: 10px;
   font-weight: 500;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   white-space: nowrap;
   transform: translate(-50%, -50%);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.placeholder-label:hover {
+  background: var(--primary);
+  transform: translate(-50%, -50%) scale(1.05);
 }
 
 /* Topic tooltip */

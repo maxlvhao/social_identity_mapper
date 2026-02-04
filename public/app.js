@@ -755,6 +755,7 @@
     saveSession();
     closeConnectionModal();
     clearConnectionLabels();
+    renderPlaceholderConnections();
     renderConnections();
   }
 
@@ -769,6 +770,7 @@
     saveSession();
     closeConnectionModal();
     clearConnectionLabels();
+    renderPlaceholderConnections();
     renderConnections();
   }
 
