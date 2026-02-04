@@ -627,7 +627,7 @@
     const fromCommunity = state.communities.find(c => c.id === pendingConnection.from);
     const toCommunity = state.communities.find(c => c.id === pendingConnection.to);
 
-    const questionText = `How easy would it be to discuss the same news topic across <strong>${fromCommunity.name}</strong> and <strong>${toCommunity.name}</strong>?`;
+    const questionText = `If members in <strong>${fromCommunity.name}</strong> were to discuss news with members in <strong>${toCommunity.name}</strong>, would they understand each other easily, or would the conversation be challenging?`;
 
     $('modal-question').innerHTML = questionText;
     $('remove-conn-btn').classList.toggle('hidden', !pendingConnection.existing);
