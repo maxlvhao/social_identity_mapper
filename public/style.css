@@ -1177,6 +1177,230 @@ body {
   color: var(--primary);
 }
 
+/* Topics Panel and Placed Topics */
+.canvas-with-panel {
+  display: flex;
+  gap: 15px;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas-with-panel .canvas-container {
+  flex: 1;
+}
+
+.topics-panel {
+  width: 140px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+}
+
+.topics-panel-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.topic-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.topic-tag:hover {
+  background: white;
+  border-color: var(--primary);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.topic-tag:active {
+  cursor: grabbing;
+}
+
+.topic-tag .topic-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.topic-tag .topic-label {
+  flex: 1;
+  line-height: 1.2;
+}
+
+/* Placed topics layer - behind communities */
+.placed-topics-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Communities should be above topics */
+.groups-canvas {
+  z-index: 10;
+}
+
+.placed-topic {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  font-size: 10px;
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  width: auto;
+  max-width: none;
+}
+
+.placed-topic:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  border-color: var(--primary-dark);
+}
+
+.placed-topic.dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.placed-topic .topic-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.placed-topic .topic-short {
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Delete zone for topics */
+.topic-delete-zone {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  z-index: 200;
+  box-shadow: 0 2px 8px rgba(220,53,69,0.3);
+}
+
+.topic-delete-zone.visible {
+  display: flex;
+}
+
+.topic-delete-zone.hover {
+  background: #c82333;
+  transform: translateX(-50%) scale(1.05);
+}
+
+.topic-delete-zone .delete-icon {
+  font-size: 16px;
+}
+
+/* Placeholder connection lines (Step 4) */
+.placeholder-connection {
+  stroke: #adb5bd;
+  stroke-width: 2;
+  stroke-dasharray: 8, 6;
+  fill: none;
+  cursor: pointer;
+  transition: stroke 0.2s;
+}
+
+.placeholder-connection:hover {
+  stroke: var(--primary);
+  stroke-width: 3;
+}
+
+.placeholder-label {
+  position: absolute;
+  background: rgba(173, 181, 189, 0.9);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+/* Topic tooltip */
+.topic-tooltip {
+  position: absolute;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 200;
+  transform: translateX(-50%);
+  bottom: calc(100% + 5px);
+  left: 50%;
+}
+
+/* Step 5 specific */
+#step-5.step-screen {
+  height: calc(100vh - 60px);
+  min-height: auto;
+  padding-bottom: 80px;
+  overflow: hidden;
+}
+
+#step-5 .step-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .progress-steps {
@@ -1218,6 +1442,31 @@ body {
   .slider-row input[type="range"] {
     width: 100%;
     order: 3;
+  }
+
+  .canvas-with-panel {
+    flex-direction: column;
+  }
+
+  .topics-panel {
+    width: 100%;
+    max-height: 120px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    order: -1;
+  }
+
+  .topics-panel-header {
+    width: 100%;
+  }
+
+  .topics-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .topic-tag {
+    flex: 0 0 auto;
   }
 
   .canvas-container {

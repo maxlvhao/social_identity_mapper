@@ -1,8 +1,22 @@
-// Social Identity Mapping App - Simplified 5-Step Flow
+// Social Identity Mapping App - 6-Step Flow
 (function() {
   'use strict';
 
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 6;
+
+  // News topic categories
+  const NEWS_TOPICS = [
+    { id: 'international', icon: '🌍', short: 'International', full: 'International / World News' },
+    { id: 'national', icon: '🏛️', short: 'National', full: 'National Politics' },
+    { id: 'local', icon: '🏘️', short: 'Local', full: 'Local / Community News' },
+    { id: 'campus', icon: '🎓', short: 'Campus', full: 'Campus / Education' },
+    { id: 'business', icon: '💼', short: 'Business', full: 'Business & Economy' },
+    { id: 'science', icon: '🔬', short: 'Science', full: 'Science & Technology' },
+    { id: 'entertainment', icon: '🎬', short: 'Entertainment', full: 'Entertainment' },
+    { id: 'sports', icon: '⚽', short: 'Sports', full: 'Sports' },
+    { id: 'health', icon: '🏥', short: 'Health', full: 'Health & Lifestyle' },
+    { id: 'professional', icon: '📊', short: 'Professional', full: 'Professional / Industry' }
+  ];
 
   // ==================== STATE ====================
   let state = {
@@ -12,7 +26,8 @@
     currentStep: 0,
     // Communities with all fields
     communities: [],  // { id, name, importance, positivity, contact, tenure, representativeness, x, y }
-    connections: []   // { from, to, type }
+    connections: [],  // { from, to, type }
+    placedTopics: []  // { id, topicId, x, y }
   };
 
   let saveTimeout = null;
@@ -20,6 +35,8 @@
   let drawingConnection = null;
   let pendingConnection = null;
   let typewriterTimeout = null;
+  let topicDragState = null;
+  let selectedTopicId = null;
 
   // ==================== DOM HELPERS ====================
   const $ = id => document.getElementById(id);
@@ -126,7 +143,8 @@
       2: renderStep2,
       3: renderStep3,
       4: renderStep4,
-      5: renderStep5
+      5: renderStep5,
+      6: renderStep6
     };
     if (renderFns[stepNum]) renderFns[stepNum]();
 
@@ -204,9 +222,13 @@
     $('step4-back').addEventListener('click', () => goToStep(3));
     $('step4-next').addEventListener('click', () => goToStep(5));
 
-    // Step 5: Complete
+    // Step 5: Topic Mapping
+    $('step5-back').addEventListener('click', () => goToStep(4));
+    $('step5-next').addEventListener('click', () => goToStep(6));
+
+    // Step 6: Complete
     $('download-btn').addEventListener('click', downloadData);
-    $('back-to-edit').addEventListener('click', () => goToStep(4));
+    $('back-to-edit').addEventListener('click', () => goToStep(5));
 
     // Connection Modal
     $('cancel-conn-btn').addEventListener('click', closeConnectionModal);
@@ -422,6 +444,7 @@
     const tutorial = $('drag-tutorial-4');
 
     renderGroupCards(canvas, false);
+    renderPlaceholderConnections();
     renderConnections();
 
     // Setup connection drawing from groups
@@ -446,6 +469,80 @@
       }, 3000);
     } else {
       tutorial.classList.add('hidden');
+    }
+  }
+
+  function renderPlaceholderConnections() {
+    const svg = $('placeholder-connections-svg');
+    const canvas = $('groups-canvas-4');
+    const container = $('canvas-container-step4');
+
+    svg.innerHTML = '';
+
+    // Clear old placeholder labels
+    container.querySelectorAll('.placeholder-label').forEach(l => l.remove());
+
+    // Generate all possible pairs
+    const communities = state.communities;
+    for (let i = 0; i < communities.length; i++) {
+      for (let j = i + 1; j < communities.length; j++) {
+        const c1 = communities[i];
+        const c2 = communities[j];
+
+        // Check if connection already exists
+        const hasConnection = state.connections.some(conn =>
+          (conn.from === c1.id && conn.to === c2.id) ||
+          (conn.from === c2.id && conn.to === c1.id)
+        );
+
+        if (hasConnection) continue;
+
+        // Get positions
+        const card1 = canvas.querySelector(`[data-id="${c1.id}"]`);
+        const card2 = canvas.querySelector(`[data-id="${c2.id}"]`);
+        if (!card1 || !card2) continue;
+
+        const x1 = c1.x + card1.offsetWidth / 2;
+        const y1 = c1.y + card1.offsetHeight / 2;
+        const x2 = c2.x + card2.offsetWidth / 2;
+        const y2 = c2.y + card2.offsetHeight / 2;
+
+        // Draw dashed line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('class', 'placeholder-connection');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.dataset.from = c1.id;
+        line.dataset.to = c2.id;
+
+        // Click to add connection
+        line.addEventListener('click', () => {
+          pendingConnection = { from: c1.id, to: c2.id, existing: false };
+          showConnectionModal();
+        });
+
+        svg.appendChild(line);
+
+        // Add "Click to add" label at midpoint
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+
+        const label = document.createElement('div');
+        label.className = 'placeholder-label';
+        label.style.left = midX + 'px';
+        label.style.top = midY + 'px';
+        label.textContent = 'Click to add';
+        label.style.pointerEvents = 'auto';
+        label.style.cursor = 'pointer';
+        label.addEventListener('click', () => {
+          pendingConnection = { from: c1.id, to: c2.id, existing: false };
+          showConnectionModal();
+        });
+
+        container.appendChild(label);
+      }
     }
   }
 
@@ -679,10 +776,244 @@
     $$('.connection-label').forEach(l => l.remove());
   }
 
-  // ==================== STEP 5: COMPLETE ====================
+  // ==================== STEP 5: TOPIC MAPPING ====================
   function renderStep5() {
+    const canvas = $('groups-canvas-5');
+    const container = $('canvas-container-step5');
+    const topicsPanel = $('topics-list');
+    const topicsLayer = $('placed-topics-layer');
+
+    // Render groups (read-only, same positions as step 3/4)
+    renderGroupCards(canvas, false);
+
+    // Render connections
+    renderTopicsConnections();
+
+    // Render topics panel
+    topicsPanel.innerHTML = NEWS_TOPICS.map(topic => `
+      <div class="topic-tag" data-topic-id="${topic.id}" draggable="true" title="${topic.full}">
+        <span class="topic-icon">${topic.icon}</span>
+        <span class="topic-label">${topic.short}</span>
+      </div>
+    `).join('');
+
+    // Setup drag from panel
+    topicsPanel.querySelectorAll('.topic-tag').forEach(tag => {
+      tag.addEventListener('mousedown', e => startTopicDragFromPanel(e, tag.dataset.topicId, container));
+
+      // Show tooltip on hover
+      tag.addEventListener('mouseenter', e => showTopicTooltip(e, tag.dataset.topicId, tag));
+      tag.addEventListener('mouseleave', hideTopicTooltip);
+    });
+
+    // Render placed topics
+    renderPlacedTopics(topicsLayer, container);
+  }
+
+  function renderTopicsConnections() {
+    const svg = $('topics-connections-svg');
+    const canvas = $('groups-canvas-5');
+
+    svg.innerHTML = '';
+
+    state.connections.forEach(conn => {
+      const fromCommunity = state.communities.find(c => c.id === conn.from);
+      const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
+      if (!fromCommunity || !fromCard) return;
+
+      const toCommunity = state.communities.find(c => c.id === conn.to);
+      const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
+      if (!toCommunity || !toCard) return;
+
+      const x1 = fromCommunity.x + fromCard.offsetWidth / 2;
+      const y1 = fromCommunity.y + fromCard.offsetHeight / 2;
+      const x2 = toCommunity.x + toCard.offsetWidth / 2;
+      const y2 = toCommunity.y + toCard.offsetHeight / 2;
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('class', `connection-line conn-${conn.type}`);
+      path.setAttribute('d', getConnectionPath(x1, y1, x2, y2, conn.type));
+      path.setAttribute('fill', 'none');
+      path.style.opacity = '0.3';  // Dim connections on topic step
+      svg.appendChild(path);
+    });
+  }
+
+  function renderPlacedTopics(layer, container) {
+    layer.innerHTML = '';
+
+    state.placedTopics.forEach(placed => {
+      const topic = NEWS_TOPICS.find(t => t.id === placed.topicId);
+      if (!topic) return;
+
+      const el = document.createElement('div');
+      el.className = 'placed-topic';
+      el.dataset.placedId = placed.id;
+      el.style.left = placed.x + 'px';
+      el.style.top = placed.y + 'px';
+      el.innerHTML = `
+        <span class="topic-icon">${topic.icon}</span>
+        <span class="topic-short">${topic.short}</span>
+      `;
+
+      // Drag to reposition or delete
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) {
+          startTopicDragFromPlaced(e, placed.id, container);
+        }
+      });
+
+      // Hover tooltip
+      el.addEventListener('mouseenter', e => showTopicTooltip(e, placed.topicId, el));
+      el.addEventListener('mouseleave', hideTopicTooltip);
+
+      layer.appendChild(el);
+    });
+  }
+
+  function startTopicDragFromPanel(e, topicId, container) {
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+
+    topicDragState = {
+      topicId,
+      placedId: null,
+      isNew: true,
+      startX: e.clientX - rect.left,
+      startY: e.clientY - rect.top,
+      container
+    };
+
+    // Create a ghost element
+    const topic = NEWS_TOPICS.find(t => t.id === topicId);
+    const ghost = document.createElement('div');
+    ghost.className = 'placed-topic dragging';
+    ghost.id = 'topic-drag-ghost';
+    ghost.style.left = topicDragState.startX + 'px';
+    ghost.style.top = topicDragState.startY + 'px';
+    ghost.innerHTML = `
+      <span class="topic-icon">${topic.icon}</span>
+      <span class="topic-short">${topic.short}</span>
+    `;
+    $('placed-topics-layer').appendChild(ghost);
+  }
+
+  function startTopicDragFromPlaced(e, placedId, container) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const placed = state.placedTopics.find(p => p.id === placedId);
+    if (!placed) return;
+
+    const rect = container.getBoundingClientRect();
+
+    topicDragState = {
+      topicId: placed.topicId,
+      placedId,
+      isNew: false,
+      offsetX: e.clientX - rect.left - placed.x,
+      offsetY: e.clientY - rect.top - placed.y,
+      container
+    };
+
+    const el = $('placed-topics-layer').querySelector(`[data-placed-id="${placedId}"]`);
+    if (el) el.classList.add('dragging');
+
+    // Show delete zone
+    showDeleteZone();
+  }
+
+  function showDeleteZone() {
+    const zone = $('topic-delete-zone');
+    if (zone) zone.classList.add('visible');
+  }
+
+  function hideDeleteZone() {
+    const zone = $('topic-delete-zone');
+    if (zone) {
+      zone.classList.remove('visible');
+      zone.classList.remove('hover');
+    }
+  }
+
+  function isOverDeleteZone(e) {
+    const zone = $('topic-delete-zone');
+    if (!zone) return false;
+    const rect = zone.getBoundingClientRect();
+    return e.clientX >= rect.left && e.clientX <= rect.right &&
+           e.clientY >= rect.top && e.clientY <= rect.bottom;
+  }
+
+  function updateDeleteZoneHover(e) {
+    const zone = $('topic-delete-zone');
+    if (!zone) return;
+    if (isOverDeleteZone(e)) {
+      zone.classList.add('hover');
+    } else {
+      zone.classList.remove('hover');
+    }
+  }
+
+  // Remove unused functions
+  function selectPlacedTopic(placedId, topic) {
+    // No longer used - kept for compatibility
+    $$('.placed-topic.selected').forEach(el => el.classList.remove('selected'));
+
+    const el = $('placed-topics-layer').querySelector(`[data-placed-id="${placedId}"]`);
+    if (el) {
+      el.classList.add('selected');
+      selectedTopicId = placedId;
+
+      // Show modal
+      $('topic-modal-question').innerHTML = `Remove <strong>${topic.full}</strong> from the map?`;
+      $('topic-modal').classList.remove('hidden');
+    }
+  }
+
+  function deselectTopic() {
+    $$('.placed-topic.selected').forEach(el => el.classList.remove('selected'));
+    selectedTopicId = null;
+  }
+
+  function closeTopicModal() {
+    $('topic-modal').classList.add('hidden');
+    deselectTopic();
+  }
+
+  function removeSelectedTopic() {
+    if (!selectedTopicId) return;
+
+    state.placedTopics = state.placedTopics.filter(p => p.id !== selectedTopicId);
+    saveSession();
+    closeTopicModal();
+    renderPlacedTopics($('placed-topics-layer'), $('canvas-container-step5'));
+  }
+
+  function showTopicTooltip(e, topicId, element) {
+    const topic = NEWS_TOPICS.find(t => t.id === topicId);
+    if (!topic) return;
+
+    // Remove existing tooltip
+    hideTopicTooltip();
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'topic-tooltip';
+    tooltip.id = 'topic-tooltip-active';
+    tooltip.textContent = topic.full;
+    element.style.position = 'relative';
+    element.appendChild(tooltip);
+  }
+
+  function hideTopicTooltip() {
+    const tooltip = document.getElementById('topic-tooltip-active');
+    if (tooltip) tooltip.remove();
+  }
+
+  // ==================== STEP 6: COMPLETE ====================
+  function renderStep6() {
     $('final-communities').textContent = state.communities.length;
     $('final-connections').textContent = state.connections.length;
+    $('final-topics').textContent = state.placedTopics.length;
 
     // Render final preview
     const canvas = $('final-groups-canvas');
@@ -798,6 +1129,31 @@
 
         $('final-canvas-container').appendChild(labelDiv);
       });
+
+      // Add placed topics to final preview
+      const topicsLayer = $('final-topics-layer');
+      topicsLayer.innerHTML = '';
+      topicsLayer.style.transform = `scale(${scale})`;
+      topicsLayer.style.width = contentWidth + 'px';
+      topicsLayer.style.height = contentHeight + 'px';
+      topicsLayer.style.transformOrigin = 'top left';
+      topicsLayer.style.left = offsetX + 'px';
+      topicsLayer.style.top = offsetY + 'px';
+
+      state.placedTopics.forEach(placed => {
+        const topic = NEWS_TOPICS.find(t => t.id === placed.topicId);
+        if (!topic) return;
+
+        const el = document.createElement('div');
+        el.className = 'placed-topic';
+        el.style.left = (placed.x - minX + 20) + 'px';
+        el.style.top = (placed.y - minY + 20) + 'px';
+        el.innerHTML = `
+          <span class="topic-icon">${topic.icon}</span>
+          <span class="topic-short">${topic.short}</span>
+        `;
+        topicsLayer.appendChild(el);
+      });
     });
   }
 
@@ -857,6 +1213,45 @@
       drawingConnection.currentY = e.clientY - rect.top;
       updateDrawingLine();
     }
+
+    // Topic dragging
+    if (topicDragState) {
+      const rect = topicDragState.container.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      let y = e.clientY - rect.top;
+
+      if (topicDragState.isNew) {
+        // Dragging from panel - move ghost
+        const ghost = document.getElementById('topic-drag-ghost');
+        if (ghost) {
+          ghost.style.left = x + 'px';
+          ghost.style.top = y + 'px';
+        }
+      } else {
+        // Dragging existing placed topic
+        x -= topicDragState.offsetX;
+        y -= topicDragState.offsetY;
+
+        // Constrain
+        x = Math.max(20, Math.min(x, rect.width - 20));
+        y = Math.max(20, Math.min(y, rect.height - 20));
+
+        const el = $('placed-topics-layer').querySelector(`[data-placed-id="${topicDragState.placedId}"]`);
+        if (el) {
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+        }
+
+        const placed = state.placedTopics.find(p => p.id === topicDragState.placedId);
+        if (placed) {
+          placed.x = x;
+          placed.y = y;
+        }
+      }
+
+      // Update delete zone hover state
+      updateDeleteZoneHover(e);
+    }
   }
 
   function handleMouseUp(e) {
@@ -878,6 +1273,53 @@
         drawingConnection = null;
         updateDrawingLine();
       }
+    }
+
+    // Topic drag end
+    if (topicDragState) {
+      const rect = topicDragState.container.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      let y = e.clientY - rect.top;
+
+      // Check if dropped inside canvas
+      const insideCanvas = x >= 0 && x <= rect.width && y >= 0 && y <= rect.height;
+
+      // Check if dropped on delete zone
+      const onDeleteZone = isOverDeleteZone(e);
+
+      if (topicDragState.isNew) {
+        // Remove ghost
+        const ghost = document.getElementById('topic-drag-ghost');
+        if (ghost) ghost.remove();
+
+        if (insideCanvas && !onDeleteZone) {
+          // Create new placed topic
+          state.placedTopics.push({
+            id: generateId('pt_'),
+            topicId: topicDragState.topicId,
+            x: x,
+            y: y
+          });
+          saveSession();
+          renderPlacedTopics($('placed-topics-layer'), $('canvas-container-step5'));
+        }
+      } else {
+        // Existing topic
+        if (onDeleteZone) {
+          // Delete the topic
+          state.placedTopics = state.placedTopics.filter(p => p.id !== topicDragState.placedId);
+          saveSession();
+          renderPlacedTopics($('placed-topics-layer'), $('canvas-container-step5'));
+        } else {
+          // Just save position
+          const el = $('placed-topics-layer').querySelector(`[data-placed-id="${topicDragState.placedId}"]`);
+          if (el) el.classList.remove('dragging');
+          saveSession();
+        }
+      }
+
+      hideDeleteZone();
+      topicDragState = null;
     }
   }
 
