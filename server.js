@@ -3,8 +3,8 @@ const path = require('path');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
-// Load .env in development
-try { require('dotenv').config(); } catch (e) { /* dotenv not installed, using process.env */ }
+// Load .env in local development only (Vercel sets env vars directly)
+try { require('dotenv').config({ override: false }); } catch (e) { /* no dotenv, using process.env */ }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
