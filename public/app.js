@@ -227,7 +227,6 @@
     $('step5-next').addEventListener('click', () => goToStep(6));
 
     // Step 6: Complete
-    $('download-btn').addEventListener('click', downloadData);
     $('back-to-edit').addEventListener('click', () => goToStep(5));
 
     // Connection Modal
