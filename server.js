@@ -1,40 +1,58 @@
 const express = require('express');
-const fs = require('fs').promises;
 const path = require('path');
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
+
+// Load .env in development
+try { require('dotenv').config(); } catch (e) { /* dotenv not installed, using process.env */ }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = path.join(__dirname, 'data');
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_KEY environment variables');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Ensure data directory exists
-fs.mkdir(DATA_DIR, { recursive: true }).catch(() => {});
-
 // Get session data
 app.get('/api/session/:id', async (req, res) => {
   const sessionId = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
-  const filePath = path.join(DATA_DIR, `${sessionId}.json`);
 
   try {
-    const data = await fs.readFile(filePath, 'utf8');
-    res.json(JSON.parse(data));
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      res.status(404).json({ error: 'Session not found' });
-    } else {
-      res.status(500).json({ error: 'Failed to read session' });
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('data')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // PGRST116 = no rows returned
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      throw error;
     }
+
+    res.json(data.data);
+  } catch (err) {
+    console.error('Failed to read session:', err.message);
+    res.status(500).json({ error: 'Failed to read session' });
   }
 });
 
 // Save session data
 app.post('/api/session/:id', async (req, res) => {
   const sessionId = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
-  const filePath = path.join(DATA_DIR, `${sessionId}.json`);
 
   const sessionData = {
     ...req.body,
@@ -47,9 +65,21 @@ app.post('/api/session/:id', async (req, res) => {
   }
 
   try {
-    await fs.writeFile(filePath, JSON.stringify(sessionData, null, 2));
+    const { error } = await supabase
+      .from('sessions')
+      .upsert({
+        session_id: sessionId,
+        data: sessionData,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'session_id'
+      });
+
+    if (error) throw error;
+
     res.json({ success: true, sessionId });
   } catch (err) {
+    console.error('Failed to save session:', err.message);
     res.status(500).json({ error: 'Failed to save session' });
   }
 });
@@ -57,15 +87,44 @@ app.post('/api/session/:id', async (req, res) => {
 // Download session as file
 app.get('/api/session/:id/download', async (req, res) => {
   const sessionId = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
-  const filePath = path.join(DATA_DIR, `${sessionId}.json`);
 
   try {
-    const data = await fs.readFile(filePath, 'utf8');
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('data')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      throw error;
+    }
+
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="session-${sessionId}.json"`);
-    res.send(data);
+    res.send(JSON.stringify(data.data, null, 2));
   } catch (err) {
+    console.error('Failed to download session:', err.message);
     res.status(404).json({ error: 'Session not found' });
+  }
+});
+
+// List all sessions (for researcher view)
+app.get('/api/sessions', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('session_id, created_at, updated_at')
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err) {
+    console.error('Failed to list sessions:', err.message);
+    res.status(500).json({ error: 'Failed to list sessions' });
   }
 });
 
