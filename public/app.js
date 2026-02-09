@@ -1,4 +1,5 @@
 // Social Identity Mapping App - 6-Step Flow
+// Steps: Landing → 1. Communal Life → 2. Details → 3. Topics → 4. Position → 5. Discourse → 6. Complete
 (function() {
   'use strict';
 
@@ -6,16 +7,16 @@
 
   // News topic categories
   const NEWS_TOPICS = [
-    { id: 'international', icon: '🌍', short: 'International', full: 'International / World News' },
-    { id: 'national', icon: '🏛️', short: 'National', full: 'National Politics' },
-    { id: 'local', icon: '🏘️', short: 'Local', full: 'Local / Community News' },
-    { id: 'campus', icon: '🎓', short: 'Campus', full: 'Campus / Education' },
-    { id: 'business', icon: '💼', short: 'Business', full: 'Business & Economy' },
-    { id: 'science', icon: '🔬', short: 'Science', full: 'Science & Technology' },
-    { id: 'entertainment', icon: '🎬', short: 'Entertainment', full: 'Entertainment' },
-    { id: 'sports', icon: '⚽', short: 'Sports', full: 'Sports' },
-    { id: 'health', icon: '🏥', short: 'Health', full: 'Health & Lifestyle' },
-    { id: 'professional', icon: '📊', short: 'Professional', full: 'Professional / Industry' }
+    { id: 'international', icon: '\u{1F30D}', short: 'International', full: 'International / World News' },
+    { id: 'national', icon: '\u{1F3DB}\uFE0F', short: 'National', full: 'National Politics' },
+    { id: 'local', icon: '\u{1F3D8}\uFE0F', short: 'Local', full: 'Local / Community News' },
+    { id: 'campus', icon: '\u{1F393}', short: 'Campus', full: 'Campus / Education' },
+    { id: 'business', icon: '\u{1F4BC}', short: 'Business', full: 'Business & Economy' },
+    { id: 'science', icon: '\u{1F52C}', short: 'Science', full: 'Science & Technology' },
+    { id: 'entertainment', icon: '\u{1F3AC}', short: 'Entertainment', full: 'Entertainment' },
+    { id: 'sports', icon: '\u26BD', short: 'Sports', full: 'Sports' },
+    { id: 'health', icon: '\u{1F3E5}', short: 'Health', full: 'Health & Lifestyle' },
+    { id: 'professional', icon: '\u{1F4CA}', short: 'Professional', full: 'Professional / Industry' }
   ];
 
   // ==================== STATE ====================
@@ -24,10 +25,9 @@
     createdAt: null,
     updatedAt: null,
     currentStep: 0,
-    // Communities with all fields
     communities: [],  // { id, name, importance, positivity, contact, tenure, representativeness, x, y }
-    connections: [],  // { from, to, type }
-    placedTopics: []  // { id, topicId, x, y }
+    connections: [],   // { from, to, type }
+    placedTopics: []   // { id, topicId, communityId }
   };
 
   let saveTimeout = null;
@@ -36,7 +36,6 @@
   let pendingConnection = null;
   let typewriterTimeout = null;
   let topicDragState = null;
-  let selectedTopicId = null;
 
   // ==================== DOM HELPERS ====================
   const $ = id => document.getElementById(id);
@@ -86,9 +85,59 @@
       console.log('Server unavailable, using local data');
     }
 
+    // Migrate old data format: placedTopics with {x, y} → {communityId}
+    migratePlacedTopics();
+
+    // Migrate old tutorial state keys
+    if (state.tutorialStep3Shown && !state.tutorialPositionShown) {
+      state.tutorialPositionShown = true;
+    }
+    if (state.tutorialStep4Shown && !state.tutorialDiscourseShown) {
+      state.tutorialDiscourseShown = true;
+    }
+
     if (state.communities.length > 0 && state.currentStep > 0) {
       goToStep(state.currentStep);
     }
+  }
+
+  function migratePlacedTopics() {
+    if (!state.placedTopics || state.placedTopics.length === 0) return;
+
+    // Check if any placed topic still uses old {x, y} format
+    const needsMigration = state.placedTopics.some(p => p.x !== undefined && p.communityId === undefined);
+    if (!needsMigration) return;
+
+    // Find nearest community for each old-format topic
+    state.placedTopics = state.placedTopics.map(placed => {
+      if (placed.communityId !== undefined) return placed;
+      if (placed.x === undefined || placed.y === undefined) return placed;
+
+      let nearestId = null;
+      let nearestDist = Infinity;
+
+      state.communities.forEach(c => {
+        if (c.x === null || c.y === null) return;
+        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        const cx = c.x + size / 2;
+        const cy = c.y + size / 2;
+        const dx = placed.x - cx;
+        const dy = placed.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestId = c.id;
+        }
+      });
+
+      return {
+        id: placed.id,
+        topicId: placed.topicId,
+        communityId: nearestId
+      };
+    }).filter(p => p.communityId !== null);
+
+    saveSession();
   }
 
   function saveSession() {
@@ -141,9 +190,9 @@
     const renderFns = {
       1: renderStep1,
       2: renderStep2,
-      3: renderStep3,
-      4: renderStep4,
-      5: renderStep5,
+      3: renderTopicsStep,
+      4: renderPositionStep,
+      5: renderDiscourseStep,
       6: renderStep6
     };
     if (renderFns[stepNum]) renderFns[stepNum]();
@@ -159,27 +208,22 @@
 
   // ==================== TYPEWRITER EFFECT ====================
   function typewriterEffect(element) {
-    // Clear any existing typewriter
     clearTimeout(typewriterTimeout);
 
-    // Store original HTML content (to preserve <strong> tags etc)
     const originalHTML = element.dataset.originalHtml || element.innerHTML;
     element.dataset.originalHtml = originalHTML;
 
-    // Get plain text for typing
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = originalHTML;
     const fullText = tempDiv.textContent;
 
-    // Set up typewriter
     element.classList.add('typewriter');
     element.innerHTML = '<span class="typewriter-text"></span><span class="typewriter-cursor"></span>';
 
     const textSpan = element.querySelector('.typewriter-text');
-    const cursor = element.querySelector('.typewriter-cursor');
 
     let charIndex = 0;
-    const speed = 15; // ms per character
+    const speed = 15;
 
     function type() {
       if (charIndex < fullText.length) {
@@ -187,7 +231,6 @@
         charIndex++;
         typewriterTimeout = setTimeout(type, speed);
       } else {
-        // Typing complete - restore original HTML with formatting and remove cursor
         setTimeout(() => {
           element.innerHTML = originalHTML;
           element.classList.remove('typewriter');
@@ -195,7 +238,6 @@
       }
     }
 
-    // Start typing after a brief delay
     typewriterTimeout = setTimeout(type, 300);
   }
 
@@ -214,15 +256,15 @@
     $('step2-back').addEventListener('click', () => goToStep(1));
     $('step2-next').addEventListener('click', () => goToStep(3));
 
-    // Step 3: Position
+    // Step 3: Topics
     $('step3-back').addEventListener('click', () => goToStep(2));
     $('step3-next').addEventListener('click', () => goToStep(4));
 
-    // Step 4: Connections
+    // Step 4: Position
     $('step4-back').addEventListener('click', () => goToStep(3));
     $('step4-next').addEventListener('click', () => goToStep(5));
 
-    // Step 5: Topic Mapping
+    // Step 5: Discourse
     $('step5-back').addEventListener('click', () => goToStep(4));
     $('step5-next').addEventListener('click', () => goToStep(6));
 
@@ -275,6 +317,7 @@
   function removeCommunity(communityId) {
     state.communities = state.communities.filter(c => c.id !== communityId);
     state.connections = state.connections.filter(c => c.from !== communityId && c.to !== communityId);
+    state.placedTopics = state.placedTopics.filter(p => p.communityId !== communityId);
     renderStep1();
     saveSession();
   }
@@ -322,7 +365,6 @@
       </tr>
     `).join('');
 
-    // Handle importance changes
     tbody.querySelectorAll('.importance-select').forEach(select => {
       select.addEventListener('change', () => {
         const row = select.closest('tr');
@@ -336,7 +378,6 @@
       });
     });
 
-    // Handle input changes
     tbody.querySelectorAll('input').forEach(input => {
       input.addEventListener('change', () => {
         const row = input.closest('tr');
@@ -361,54 +402,8 @@
     $('details-hint').classList.toggle('hidden', allHaveImportance);
   }
 
-  // ==================== STEP 3: POSITION GROUPS ====================
-  function renderStep3() {
-    const canvas = $('groups-canvas-3');
-    const container = $('canvas-container-step3');
-    const tutorial = $('drag-tutorial-3');
-
-    // Initialize positions if not set
-    const containerRect = container.getBoundingClientRect();
-    const centerX = containerRect.width / 2;
-    const centerY = containerRect.height / 2;
-
-    state.communities.forEach((c, i) => {
-      if (c.x === null || c.y === null) {
-        // Spread communities around center
-        const angle = (i / state.communities.length) * 2 * Math.PI;
-        const radius = Math.min(centerX, centerY) * 0.6;
-        c.x = centerX + Math.cos(angle) * radius - 50;
-        c.y = centerY + Math.sin(angle) * radius - 50;
-      }
-    });
-
-    renderGroupCards(canvas, true);
-
-    // Show tutorial once
-    if (!state.tutorialStep3Shown) {
-      tutorial.classList.remove('hidden');
-      tutorial.addEventListener('click', () => {
-        tutorial.classList.add('hidden');
-        state.tutorialStep3Shown = true;
-        saveSession();
-      }, { once: true });
-
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        tutorial.classList.add('hidden');
-        state.tutorialStep3Shown = true;
-        saveSession();
-      }, 3000);
-    } else {
-      tutorial.classList.add('hidden');
-    }
-  }
-
-  function renderGroupCards(canvas, draggable = false) {
-    renderGroupCardsWithState(canvas, state, draggable);
-  }
-
-  function renderGroupCardsWithState(canvas, stateObj, draggable = false) {
+  // ==================== SHARED: RENDER GROUP CARDS WITH TOPICS ====================
+  function renderGroupCardsWithState(canvas, stateObj, draggable, showTopics) {
     canvas.innerHTML = '';
 
     stateObj.communities.forEach(c => {
@@ -428,21 +423,200 @@
         <span class="card-corner br">${displayVal(c.representativeness)}</span>
       `;
 
+      // Append topics below card if showTopics is true
+      if (showTopics) {
+        const topics = (stateObj.placedTopics || state.placedTopics).filter(p => p.communityId === c.id);
+        if (topics.length > 0) {
+          const topicsContainer = document.createElement('div');
+          topicsContainer.className = 'card-topics';
+
+          topics.forEach(placed => {
+            const topic = NEWS_TOPICS.find(t => t.id === placed.topicId);
+            if (!topic) return;
+            const tag = document.createElement('span');
+            tag.className = 'card-topic-tag';
+            tag.dataset.placedId = placed.id;
+            tag.innerHTML = `<span class="topic-icon">${topic.icon}</span> ${topic.short}`;
+            topicsContainer.appendChild(tag);
+          });
+
+          card.appendChild(topicsContainer);
+        }
+      }
+
       if (draggable) {
-        card.addEventListener('mousedown', e => startDrag(e, c.id, canvas));
+        card.addEventListener('mousedown', e => {
+          // Don't start card drag if clicking on a topic tag
+          if (e.target.closest('.card-topic-tag')) return;
+          startDrag(e, c.id, canvas);
+        });
       }
 
       canvas.appendChild(card);
     });
   }
 
-  // ==================== STEP 4: CONNECTIONS ====================
-  function renderStep4() {
+  // ==================== STEP 3: TOPIC MAPPING (snap to cards) ====================
+  function renderTopicsStep() {
+    const canvas = $('groups-canvas-3');
+    const container = $('canvas-container-step3');
+    const topicsPanel = $('topics-list');
+
+    // Initialize positions if not set (circular layout)
+    const containerRect = container.getBoundingClientRect();
+    const centerX = containerRect.width / 2;
+    const centerY = containerRect.height / 2;
+
+    state.communities.forEach((c, i) => {
+      if (c.x === null || c.y === null) {
+        const angle = (i / state.communities.length) * 2 * Math.PI;
+        const radius = Math.min(centerX, centerY) * 0.5;
+        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        c.x = centerX + Math.cos(angle) * radius - size / 2;
+        c.y = centerY + Math.sin(angle) * radius - size / 2;
+      }
+    });
+
+    // Render cards with topics (not draggable — cards are locked, only topics drag)
+    renderGroupCardsWithState(canvas, state, false, true);
+
+    // Setup topic drag-off from cards (drag existing topic tag to remove/reassign)
+    canvas.querySelectorAll('.card-topic-tag').forEach(tag => {
+      tag.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        startTopicDragFromCard(e, tag.dataset.placedId, container);
+      });
+    });
+
+    // Render topics panel
+    topicsPanel.innerHTML = NEWS_TOPICS.map(topic => `
+      <div class="topic-tag" data-topic-id="${topic.id}" title="${topic.full}">
+        <span class="topic-icon">${topic.icon}</span>
+        <span class="topic-label">${topic.short}</span>
+      </div>
+    `).join('');
+
+    // Setup drag from panel
+    topicsPanel.querySelectorAll('.topic-tag').forEach(tag => {
+      tag.addEventListener('mousedown', e => startTopicDragFromPanel(e, tag.dataset.topicId, container));
+    });
+  }
+
+  function startTopicDragFromPanel(e, topicId, container) {
+    e.preventDefault();
+
+    const topic = NEWS_TOPICS.find(t => t.id === topicId);
+
+    topicDragState = {
+      topicId,
+      placedId: null,
+      isNew: true,
+      container
+    };
+
+    // Create ghost element
+    const ghost = document.createElement('div');
+    ghost.className = 'card-topic-tag topic-drag-ghost';
+    ghost.id = 'topic-drag-ghost';
+    ghost.innerHTML = `<span class="topic-icon">${topic.icon}</span> ${topic.short}`;
+    ghost.style.position = 'fixed';
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top = e.clientY + 'px';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.zIndex = '9999';
+    ghost.style.opacity = '0.85';
+    ghost.style.transform = 'translate(-50%, -50%)';
+    document.body.appendChild(ghost);
+
+    // Add drop target hints to all cards
+    container.querySelectorAll('.group-card').forEach(card => {
+      card.classList.add('drop-target-hint');
+    });
+  }
+
+  function startTopicDragFromCard(e, placedId, container) {
+    const placed = state.placedTopics.find(p => p.id === placedId);
+    if (!placed) return;
+
+    const topic = NEWS_TOPICS.find(t => t.id === placed.topicId);
+
+    topicDragState = {
+      topicId: placed.topicId,
+      placedId,
+      isNew: false,
+      container
+    };
+
+    // Create ghost
+    const ghost = document.createElement('div');
+    ghost.className = 'card-topic-tag topic-drag-ghost';
+    ghost.id = 'topic-drag-ghost';
+    ghost.innerHTML = `<span class="topic-icon">${topic.icon}</span> ${topic.short}`;
+    ghost.style.position = 'fixed';
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top = e.clientY + 'px';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.zIndex = '9999';
+    ghost.style.opacity = '0.85';
+    ghost.style.transform = 'translate(-50%, -50%)';
+    document.body.appendChild(ghost);
+
+    // Add drop target hints
+    container.querySelectorAll('.group-card').forEach(card => {
+      card.classList.add('drop-target-hint');
+    });
+  }
+
+  // ==================== STEP 4: POSITION GROUPS ====================
+  function renderPositionStep() {
     const canvas = $('groups-canvas-4');
     const container = $('canvas-container-step4');
     const tutorial = $('drag-tutorial-4');
 
-    renderGroupCards(canvas, false);
+    // Initialize positions if not set
+    const containerRect = container.getBoundingClientRect();
+    const centerX = containerRect.width / 2;
+    const centerY = containerRect.height / 2;
+
+    state.communities.forEach((c, i) => {
+      if (c.x === null || c.y === null) {
+        const angle = (i / state.communities.length) * 2 * Math.PI;
+        const radius = Math.min(centerX, centerY) * 0.5;
+        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        c.x = centerX + Math.cos(angle) * radius - size / 2;
+        c.y = centerY + Math.sin(angle) * radius - size / 2;
+      }
+    });
+
+    renderGroupCardsWithState(canvas, state, true, true);
+
+    // Show tutorial once
+    if (!state.tutorialPositionShown) {
+      tutorial.classList.remove('hidden');
+      tutorial.addEventListener('click', () => {
+        tutorial.classList.add('hidden');
+        state.tutorialPositionShown = true;
+        saveSession();
+      }, { once: true });
+
+      setTimeout(() => {
+        tutorial.classList.add('hidden');
+        state.tutorialPositionShown = true;
+        saveSession();
+      }, 3000);
+    } else {
+      tutorial.classList.add('hidden');
+    }
+  }
+
+  // ==================== STEP 5: DISCOURSE ====================
+  function renderDiscourseStep() {
+    const canvas = $('groups-canvas-5');
+    const container = $('canvas-container-step5');
+    const tutorial = $('drag-tutorial-5');
+
+    renderGroupCardsWithState(canvas, state, false, true);
     renderConnections();
 
     // Setup connection drawing from groups
@@ -451,18 +625,17 @@
     });
 
     // Show tutorial once
-    if (!state.tutorialStep4Shown) {
+    if (!state.tutorialDiscourseShown) {
       tutorial.classList.remove('hidden');
       tutorial.addEventListener('click', () => {
         tutorial.classList.add('hidden');
-        state.tutorialStep4Shown = true;
+        state.tutorialDiscourseShown = true;
         saveSession();
       }, { once: true });
 
-      // Auto-hide after 3 seconds
       setTimeout(() => {
         tutorial.classList.add('hidden');
-        state.tutorialStep4Shown = true;
+        state.tutorialDiscourseShown = true;
         saveSession();
       }, 3000);
     } else {
@@ -470,9 +643,10 @@
     }
   }
 
+  // ==================== CONNECTIONS ====================
   function renderConnections() {
     const svg = $('connections-svg');
-    const canvas = $('groups-canvas-4') || $('final-groups-canvas');
+    const canvas = $('groups-canvas-5') || $('final-groups-canvas');
 
     svg.innerHTML = '';
 
@@ -529,7 +703,6 @@
     if (type === 'easy') {
       return `M ${x1} ${y1} L ${x2} ${y2}`;
     } else if (type === 'moderate') {
-      // Wavy line
       const dx = x2 - x1;
       const dy = y2 - y1;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -553,7 +726,6 @@
       }
       return d;
     } else {
-      // Jagged line
       const dx = x2 - x1;
       const dy = y2 - y1;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -620,14 +792,12 @@
       return;
     }
 
-    // Normalize connection order (alphabetically by id)
     let fromId = drawingConnection.fromId;
     let toId = toCommunityId;
     if (fromId > toId) {
       [fromId, toId] = [toId, fromId];
     }
 
-    // Check if connection already exists
     const existing = state.connections.find(c =>
       (c.from === fromId && c.to === toId) ||
       (c.from === toId && c.to === fromId)
@@ -663,13 +833,11 @@
   function setConnectionType(type) {
     if (!pendingConnection) return;
 
-    // Remove existing connection if any
     state.connections = state.connections.filter(c =>
       !((c.from === pendingConnection.from && c.to === pendingConnection.to) ||
         (c.from === pendingConnection.to && c.to === pendingConnection.from))
     );
 
-    // Add new connection
     state.connections.push({
       from: pendingConnection.from,
       to: pendingConnection.to,
@@ -700,245 +868,12 @@
     $$('.connection-label').forEach(l => l.remove());
   }
 
-  // ==================== STEP 5: TOPIC MAPPING ====================
-  function renderStep5() {
-    const canvas = $('groups-canvas-5');
-    const container = $('canvas-container-step5');
-    const topicsPanel = $('topics-list');
-    const topicsLayer = $('placed-topics-layer');
-
-    // Render groups (read-only, same positions as step 3/4)
-    renderGroupCards(canvas, false);
-
-    // Render connections
-    renderTopicsConnections();
-
-    // Render topics panel
-    topicsPanel.innerHTML = NEWS_TOPICS.map(topic => `
-      <div class="topic-tag" data-topic-id="${topic.id}" draggable="true" title="${topic.full}">
-        <span class="topic-icon">${topic.icon}</span>
-        <span class="topic-label">${topic.short}</span>
-      </div>
-    `).join('');
-
-    // Setup drag from panel
-    topicsPanel.querySelectorAll('.topic-tag').forEach(tag => {
-      tag.addEventListener('mousedown', e => startTopicDragFromPanel(e, tag.dataset.topicId, container));
-
-      // Show tooltip on hover
-      tag.addEventListener('mouseenter', e => showTopicTooltip(e, tag.dataset.topicId, tag));
-      tag.addEventListener('mouseleave', hideTopicTooltip);
-    });
-
-    // Render placed topics
-    renderPlacedTopics(topicsLayer, container);
-  }
-
-  function renderTopicsConnections() {
-    const svg = $('topics-connections-svg');
-    const canvas = $('groups-canvas-5');
-
-    svg.innerHTML = '';
-
-    state.connections.forEach(conn => {
-      const fromCommunity = state.communities.find(c => c.id === conn.from);
-      const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
-      if (!fromCommunity || !fromCard) return;
-
-      const toCommunity = state.communities.find(c => c.id === conn.to);
-      const toCard = canvas.querySelector(`[data-id="${conn.to}"]`);
-      if (!toCommunity || !toCard) return;
-
-      const x1 = fromCommunity.x + fromCard.offsetWidth / 2;
-      const y1 = fromCommunity.y + fromCard.offsetHeight / 2;
-      const x2 = toCommunity.x + toCard.offsetWidth / 2;
-      const y2 = toCommunity.y + toCard.offsetHeight / 2;
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('class', `connection-line conn-${conn.type}`);
-      path.setAttribute('d', getConnectionPath(x1, y1, x2, y2, conn.type));
-      path.setAttribute('fill', 'none');
-      path.style.opacity = '0.3';  // Dim connections on topic step
-      svg.appendChild(path);
-    });
-  }
-
-  function renderPlacedTopics(layer, container) {
-    layer.innerHTML = '';
-
-    state.placedTopics.forEach(placed => {
-      const topic = NEWS_TOPICS.find(t => t.id === placed.topicId);
-      if (!topic) return;
-
-      const el = document.createElement('div');
-      el.className = 'placed-topic';
-      el.dataset.placedId = placed.id;
-      el.style.left = placed.x + 'px';
-      el.style.top = placed.y + 'px';
-      el.innerHTML = `
-        <span class="topic-icon">${topic.icon}</span>
-        <span class="topic-short">${topic.short}</span>
-      `;
-
-      // Drag to reposition or delete
-      el.addEventListener('mousedown', e => {
-        if (e.button === 0) {
-          startTopicDragFromPlaced(e, placed.id, container);
-        }
-      });
-
-      // Hover tooltip
-      el.addEventListener('mouseenter', e => showTopicTooltip(e, placed.topicId, el));
-      el.addEventListener('mouseleave', hideTopicTooltip);
-
-      layer.appendChild(el);
-    });
-  }
-
-  function startTopicDragFromPanel(e, topicId, container) {
-    e.preventDefault();
-    const rect = container.getBoundingClientRect();
-
-    topicDragState = {
-      topicId,
-      placedId: null,
-      isNew: true,
-      startX: e.clientX - rect.left,
-      startY: e.clientY - rect.top,
-      container
-    };
-
-    // Create a ghost element
-    const topic = NEWS_TOPICS.find(t => t.id === topicId);
-    const ghost = document.createElement('div');
-    ghost.className = 'placed-topic dragging';
-    ghost.id = 'topic-drag-ghost';
-    ghost.style.left = topicDragState.startX + 'px';
-    ghost.style.top = topicDragState.startY + 'px';
-    ghost.innerHTML = `
-      <span class="topic-icon">${topic.icon}</span>
-      <span class="topic-short">${topic.short}</span>
-    `;
-    $('placed-topics-layer').appendChild(ghost);
-  }
-
-  function startTopicDragFromPlaced(e, placedId, container) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const placed = state.placedTopics.find(p => p.id === placedId);
-    if (!placed) return;
-
-    const rect = container.getBoundingClientRect();
-
-    topicDragState = {
-      topicId: placed.topicId,
-      placedId,
-      isNew: false,
-      offsetX: e.clientX - rect.left - placed.x,
-      offsetY: e.clientY - rect.top - placed.y,
-      container
-    };
-
-    const el = $('placed-topics-layer').querySelector(`[data-placed-id="${placedId}"]`);
-    if (el) el.classList.add('dragging');
-
-    // Show delete zone
-    showDeleteZone();
-  }
-
-  function showDeleteZone() {
-    const zone = $('topic-delete-zone');
-    if (zone) zone.classList.add('visible');
-  }
-
-  function hideDeleteZone() {
-    const zone = $('topic-delete-zone');
-    if (zone) {
-      zone.classList.remove('visible');
-      zone.classList.remove('hover');
-    }
-  }
-
-  function isOverDeleteZone(e) {
-    const zone = $('topic-delete-zone');
-    if (!zone) return false;
-    const rect = zone.getBoundingClientRect();
-    return e.clientX >= rect.left && e.clientX <= rect.right &&
-           e.clientY >= rect.top && e.clientY <= rect.bottom;
-  }
-
-  function updateDeleteZoneHover(e) {
-    const zone = $('topic-delete-zone');
-    if (!zone) return;
-    if (isOverDeleteZone(e)) {
-      zone.classList.add('hover');
-    } else {
-      zone.classList.remove('hover');
-    }
-  }
-
-  // Remove unused functions
-  function selectPlacedTopic(placedId, topic) {
-    // No longer used - kept for compatibility
-    $$('.placed-topic.selected').forEach(el => el.classList.remove('selected'));
-
-    const el = $('placed-topics-layer').querySelector(`[data-placed-id="${placedId}"]`);
-    if (el) {
-      el.classList.add('selected');
-      selectedTopicId = placedId;
-
-      // Show modal
-      $('topic-modal-question').innerHTML = `Remove <strong>${topic.full}</strong> from the map?`;
-      $('topic-modal').classList.remove('hidden');
-    }
-  }
-
-  function deselectTopic() {
-    $$('.placed-topic.selected').forEach(el => el.classList.remove('selected'));
-    selectedTopicId = null;
-  }
-
-  function closeTopicModal() {
-    $('topic-modal').classList.add('hidden');
-    deselectTopic();
-  }
-
-  function removeSelectedTopic() {
-    if (!selectedTopicId) return;
-
-    state.placedTopics = state.placedTopics.filter(p => p.id !== selectedTopicId);
-    saveSession();
-    closeTopicModal();
-    renderPlacedTopics($('placed-topics-layer'), $('canvas-container-step5'));
-  }
-
-  function showTopicTooltip(e, topicId, element) {
-    const topic = NEWS_TOPICS.find(t => t.id === topicId);
-    if (!topic) return;
-
-    // Remove existing tooltip
-    hideTopicTooltip();
-
-    const tooltip = document.createElement('div');
-    tooltip.className = 'topic-tooltip';
-    tooltip.id = 'topic-tooltip-active';
-    tooltip.textContent = topic.full;
-    element.appendChild(tooltip);
-  }
-
-  function hideTopicTooltip() {
-    const tooltip = document.getElementById('topic-tooltip-active');
-    if (tooltip) tooltip.remove();
-  }
-
   // ==================== STEP 6: COMPLETE ====================
   function renderStep6() {
     $('final-communities').textContent = state.communities.length;
     $('final-connections').textContent = state.connections.length;
     $('final-topics').textContent = state.placedTopics.length;
 
-    // Render final preview
     const canvas = $('final-groups-canvas');
     const svg = $('final-connections-svg');
     const container = $('final-canvas-container');
@@ -958,17 +893,26 @@
       if (c.y + size > maxY) maxY = c.y + size;
     });
 
+    // Account for topics extending below cards
+    state.communities.forEach(c => {
+      const topicsForCard = state.placedTopics.filter(p => p.communityId === c.id);
+      if (topicsForCard.length > 0) {
+        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        const topicHeight = Math.ceil(topicsForCard.length / 2) * 24 + 8;
+        const bottomY = c.y + size + topicHeight;
+        if (bottomY > maxY) maxY = bottomY;
+      }
+    });
+
     const contentWidth = maxX - minX + 40;
     const contentHeight = maxY - minY + 40;
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
 
-    // Calculate scale to fit
     const scaleX = containerWidth / contentWidth;
     const scaleY = containerHeight / contentHeight;
-    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+    const scale = Math.min(scaleX, scaleY, 1);
 
-    // Apply transform
     canvas.style.transform = `scale(${scale})`;
     canvas.style.width = contentWidth + 'px';
     canvas.style.height = contentHeight + 'px';
@@ -976,7 +920,6 @@
     svg.style.width = contentWidth + 'px';
     svg.style.height = contentHeight + 'px';
 
-    // Offset to center
     const offsetX = (containerWidth - contentWidth * scale) / 2;
     const offsetY = (containerHeight - contentHeight * scale) / 2;
     canvas.style.transformOrigin = 'top left';
@@ -986,7 +929,6 @@
     svg.style.left = offsetX + 'px';
     svg.style.top = offsetY + 'px';
 
-    // Adjust positions for rendering (offset by minX, minY)
     const offsetState = {
       ...state,
       communities: state.communities.map(c => ({
@@ -996,9 +938,8 @@
       }))
     };
 
-    renderGroupCardsWithState(canvas, offsetState);
+    renderGroupCardsWithState(canvas, offsetState, false, true);
 
-    // Wait for cards to render before drawing connections
     requestAnimationFrame(() => {
       svg.innerHTML = '';
 
@@ -1023,7 +964,6 @@
         svg.appendChild(path);
       });
 
-      // Add connection labels
       state.connections.forEach(conn => {
         const fromCommunity = offsetState.communities.find(c => c.id === conn.from);
         const fromCard = canvas.querySelector(`[data-id="${conn.from}"]`);
@@ -1050,48 +990,9 @@
         labelDiv.style.transform = 'translate(-50%, -50%)';
         labelDiv.textContent = labelText;
 
-        $('final-canvas-container').appendChild(labelDiv);
-      });
-
-      // Add placed topics to final preview
-      const topicsLayer = $('final-topics-layer');
-      topicsLayer.innerHTML = '';
-      topicsLayer.style.transform = `scale(${scale})`;
-      topicsLayer.style.width = contentWidth + 'px';
-      topicsLayer.style.height = contentHeight + 'px';
-      topicsLayer.style.transformOrigin = 'top left';
-      topicsLayer.style.left = offsetX + 'px';
-      topicsLayer.style.top = offsetY + 'px';
-
-      state.placedTopics.forEach(placed => {
-        const topic = NEWS_TOPICS.find(t => t.id === placed.topicId);
-        if (!topic) return;
-
-        const el = document.createElement('div');
-        el.className = 'placed-topic';
-        el.style.left = (placed.x - minX + 20) + 'px';
-        el.style.top = (placed.y - minY + 20) + 'px';
-        el.innerHTML = `
-          <span class="topic-icon">${topic.icon}</span>
-          <span class="topic-short">${topic.short}</span>
-        `;
-        topicsLayer.appendChild(el);
+        container.appendChild(labelDiv);
       });
     });
-  }
-
-  function downloadData() {
-    const dataStr = JSON.stringify(state, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `social-identity-map-${state.sessionId}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
   // ==================== DRAG HANDLING ====================
@@ -1112,6 +1013,7 @@
   }
 
   function handleMouseMove(e) {
+    // Card dragging
     if (dragState) {
       const card = dragState.canvas.querySelector(`[data-id="${dragState.communityId}"]`);
       const community = state.communities.find(c => c.id === dragState.communityId);
@@ -1119,9 +1021,9 @@
       let x = e.clientX - dragState.containerRect.left - dragState.offsetX;
       let y = e.clientY - dragState.containerRect.top - dragState.offsetY;
 
-      // Constrain to container
+      // Constrain to container (leave extra room at bottom for topics)
       x = Math.max(0, Math.min(x, dragState.containerRect.width - card.offsetWidth));
-      y = Math.max(0, Math.min(y, dragState.containerRect.height - card.offsetHeight));
+      y = Math.max(0, Math.min(y, dragState.containerRect.height - card.offsetHeight - 30));
 
       card.style.left = x + 'px';
       card.style.top = y + 'px';
@@ -1130,6 +1032,7 @@
       community.y = y;
     }
 
+    // Connection drawing
     if (drawingConnection) {
       const rect = drawingConnection.container.getBoundingClientRect();
       drawingConnection.currentX = e.clientX - rect.left;
@@ -1139,45 +1042,32 @@
 
     // Topic dragging
     if (topicDragState) {
-      const rect = topicDragState.container.getBoundingClientRect();
-      let x = e.clientX - rect.left;
-      let y = e.clientY - rect.top;
-
-      if (topicDragState.isNew) {
-        // Dragging from panel - move ghost
-        const ghost = document.getElementById('topic-drag-ghost');
-        if (ghost) {
-          ghost.style.left = x + 'px';
-          ghost.style.top = y + 'px';
-        }
-      } else {
-        // Dragging existing placed topic
-        x -= topicDragState.offsetX;
-        y -= topicDragState.offsetY;
-
-        // Constrain
-        x = Math.max(20, Math.min(x, rect.width - 20));
-        y = Math.max(20, Math.min(y, rect.height - 20));
-
-        const el = $('placed-topics-layer').querySelector(`[data-placed-id="${topicDragState.placedId}"]`);
-        if (el) {
-          el.style.left = x + 'px';
-          el.style.top = y + 'px';
-        }
-
-        const placed = state.placedTopics.find(p => p.id === topicDragState.placedId);
-        if (placed) {
-          placed.x = x;
-          placed.y = y;
-        }
+      const ghost = document.getElementById('topic-drag-ghost');
+      if (ghost) {
+        ghost.style.left = e.clientX + 'px';
+        ghost.style.top = e.clientY + 'px';
       }
 
-      // Update delete zone hover state
-      updateDeleteZoneHover(e);
+      // Detect hovered card
+      const container = topicDragState.container;
+      container.querySelectorAll('.group-card').forEach(card => {
+        card.classList.remove('drop-target-active');
+      });
+
+      // Temporarily hide ghost to check what's under cursor
+      if (ghost) ghost.style.display = 'none';
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      if (ghost) ghost.style.display = '';
+
+      const hoveredCard = target?.closest('.group-card');
+      if (hoveredCard) {
+        hoveredCard.classList.add('drop-target-active');
+      }
     }
   }
 
   function handleMouseUp(e) {
+    // Card drag end
     if (dragState) {
       const card = dragState.canvas.querySelector(`[data-id="${dragState.communityId}"]`);
       card.classList.remove('dragging');
@@ -1185,8 +1075,8 @@
       saveSession();
     }
 
+    // Connection drawing end
     if (drawingConnection) {
-      // Check if we're over a group card
       const target = document.elementFromPoint(e.clientX, e.clientY);
       const card = target?.closest('.group-card');
 
@@ -1200,48 +1090,52 @@
 
     // Topic drag end
     if (topicDragState) {
-      const rect = topicDragState.container.getBoundingClientRect();
-      let x = e.clientX - rect.left;
-      let y = e.clientY - rect.top;
+      // Remove ghost
+      const ghost = document.getElementById('topic-drag-ghost');
+      if (ghost) ghost.remove();
 
-      // Check if dropped inside canvas
-      const insideCanvas = x >= 0 && x <= rect.width && y >= 0 && y <= rect.height;
+      // Remove all highlights
+      const container = topicDragState.container;
+      container.querySelectorAll('.group-card').forEach(card => {
+        card.classList.remove('drop-target-hint');
+        card.classList.remove('drop-target-active');
+      });
 
-      // Check if dropped on delete zone
-      const onDeleteZone = isOverDeleteZone(e);
+      // Find which card we're over (hide ghost first already removed)
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      const hoveredCard = target?.closest('.group-card');
 
       if (topicDragState.isNew) {
-        // Remove ghost
-        const ghost = document.getElementById('topic-drag-ghost');
-        if (ghost) ghost.remove();
-
-        if (insideCanvas && !onDeleteZone) {
-          // Create new placed topic
+        // Dragging from panel
+        if (hoveredCard) {
+          const communityId = hoveredCard.dataset.id;
           state.placedTopics.push({
             id: generateId('pt_'),
             topicId: topicDragState.topicId,
-            x: x,
-            y: y
+            communityId: communityId
           });
           saveSession();
-          renderPlacedTopics($('placed-topics-layer'), $('canvas-container-step5'));
+          renderTopicsStep();
         }
+        // If not over a card, discard
       } else {
-        // Existing topic
-        if (onDeleteZone) {
-          // Delete the topic
+        // Dragging existing topic
+        if (hoveredCard) {
+          // Assign to this card (same or different)
+          const placed = state.placedTopics.find(p => p.id === topicDragState.placedId);
+          if (placed) {
+            placed.communityId = hoveredCard.dataset.id;
+            saveSession();
+          }
+          renderTopicsStep();
+        } else {
+          // Not over any card — remove
           state.placedTopics = state.placedTopics.filter(p => p.id !== topicDragState.placedId);
           saveSession();
-          renderPlacedTopics($('placed-topics-layer'), $('canvas-container-step5'));
-        } else {
-          // Just save position
-          const el = $('placed-topics-layer').querySelector(`[data-placed-id="${topicDragState.placedId}"]`);
-          if (el) el.classList.remove('dragging');
-          saveSession();
+          renderTopicsStep();
         }
       }
 
-      hideDeleteZone();
       topicDragState = null;
     }
   }

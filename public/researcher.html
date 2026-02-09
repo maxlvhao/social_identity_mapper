@@ -360,6 +360,37 @@
       font-size: 9px;
     }
 
+    /* Topics attached to map cards */
+    .map-card-topics {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      padding-top: 3px;
+      justify-content: center;
+      max-width: 120px;
+    }
+
+    .map-card-topic-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 1px 5px;
+      background: white;
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      font-size: 8px;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .map-card-topic-tag .topic-icon {
+      font-size: 8px;
+    }
+
     /* Connection lines */
     .conn-easy {
       stroke: var(--conn-color);
@@ -417,26 +448,6 @@
     .legend-box.high { background: var(--importance-high); }
     .legend-box.medium { background: var(--importance-medium); }
     .legend-box.low { background: var(--importance-low); }
-
-    /* Topic tags on map */
-    .map-topic-tag {
-      position: absolute;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 8px;
-      background: white;
-      border: 2px solid var(--primary);
-      border-radius: 12px;
-      font-size: 10px;
-      transform: translate(-50%, -50%);
-      white-space: nowrap;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .map-topic-tag .topic-icon {
-      font-size: 11px;
-    }
 
     /* Empty state */
     .empty-state {
@@ -510,7 +521,7 @@
       <div class="report-card">
         <h3>Position Map</h3>
         <p style="color: var(--text-light); font-size: 13px; margin-bottom: 15px;">
-          Communities positioned by information overlap. Closer groups share more similar information.
+          Communities positioned by information overlap. Closer groups share more similar information. Topics are shown attached to their assigned communities.
         </p>
         <div class="map-preview" id="map-preview">
           <svg class="map-connections" id="map-connections"></svg>
@@ -546,12 +557,13 @@
       <div class="report-card">
         <h3>Topic Placements</h3>
         <p style="color: var(--text-light); font-size: 13px; margin-bottom: 15px;">
-          News topics placed near groups that typically consume them.
+          News topics assigned to communities.
         </p>
         <table class="data-table" id="topics-table-container">
           <thead>
             <tr>
               <th>Topic</th>
+              <th>Community</th>
               <th>Count</th>
             </tr>
           </thead>
@@ -582,16 +594,16 @@
       };
 
       const NEWS_TOPICS = {
-        'international': { icon: '🌍', short: 'International', full: 'International / World News' },
-        'national': { icon: '🏛️', short: 'National', full: 'National Politics' },
-        'local': { icon: '🏘️', short: 'Local', full: 'Local / Community News' },
-        'campus': { icon: '🎓', short: 'Campus', full: 'Campus / Education' },
-        'business': { icon: '💼', short: 'Business', full: 'Business & Economy' },
-        'science': { icon: '🔬', short: 'Science', full: 'Science & Technology' },
-        'entertainment': { icon: '🎬', short: 'Entertainment', full: 'Entertainment' },
-        'sports': { icon: '⚽', short: 'Sports', full: 'Sports' },
-        'health': { icon: '🏥', short: 'Health', full: 'Health & Lifestyle' },
-        'professional': { icon: '📊', short: 'Professional', full: 'Professional / Industry' }
+        'international': { icon: '\u{1F30D}', short: 'International', full: 'International / World News' },
+        'national': { icon: '\u{1F3DB}\uFE0F', short: 'National', full: 'National Politics' },
+        'local': { icon: '\u{1F3D8}\uFE0F', short: 'Local', full: 'Local / Community News' },
+        'campus': { icon: '\u{1F393}', short: 'Campus', full: 'Campus / Education' },
+        'business': { icon: '\u{1F4BC}', short: 'Business', full: 'Business & Economy' },
+        'science': { icon: '\u{1F52C}', short: 'Science', full: 'Science & Technology' },
+        'entertainment': { icon: '\u{1F3AC}', short: 'Entertainment', full: 'Entertainment' },
+        'sports': { icon: '\u26BD', short: 'Sports', full: 'Sports' },
+        'health': { icon: '\u{1F3E5}', short: 'Health', full: 'Health & Lifestyle' },
+        'professional': { icon: '\u{1F4CA}', short: 'Professional', full: 'Professional / Industry' }
       };
 
       // File upload handling
@@ -649,10 +661,49 @@
             return;
           }
           loadedData = await res.json();
+          migratePlacedTopics();
           renderReport();
         } catch (err) {
           errorContainer.innerHTML = '<div class="error-msg">Failed to load session. Please try again.</div>';
         }
+      }
+
+      // Migrate old {x, y} format to {communityId}
+      function migratePlacedTopics() {
+        if (!loadedData || !loadedData.placedTopics || loadedData.placedTopics.length === 0) return;
+
+        const needsMigration = loadedData.placedTopics.some(p => p.x !== undefined && p.communityId === undefined);
+        if (!needsMigration) return;
+
+        const communities = loadedData.communities || [];
+
+        loadedData.placedTopics = loadedData.placedTopics.map(placed => {
+          if (placed.communityId !== undefined) return placed;
+          if (placed.x === undefined || placed.y === undefined) return placed;
+
+          let nearestId = null;
+          let nearestDist = Infinity;
+
+          communities.forEach(c => {
+            if (c.x === null || c.y === null || c.x === undefined || c.y === undefined) return;
+            const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+            const cx = c.x + size / 2;
+            const cy = c.y + size / 2;
+            const dx = placed.x - cx;
+            const dy = placed.y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < nearestDist) {
+              nearestDist = dist;
+              nearestId = c.id;
+            }
+          });
+
+          return {
+            id: placed.id,
+            topicId: placed.topicId,
+            communityId: nearestId
+          };
+        }).filter(p => p.communityId !== null);
       }
 
       // Load and display recent sessions list
@@ -699,6 +750,7 @@
         reader.onload = e => {
           try {
             loadedData = JSON.parse(e.target.result);
+            migratePlacedTopics();
             renderReport();
           } catch (err) {
             alert('Invalid JSON file');
@@ -764,6 +816,7 @@
 
         const communities = loadedData.communities || [];
         const connections = loadedData.connections || [];
+        const placedTopics = loadedData.placedTopics || [];
 
         // Get container dimensions
         const rect = container.getBoundingClientRect();
@@ -774,10 +827,8 @@
         const posLookup = {};
         communities.forEach(c => {
           if (c.x !== undefined && c.y !== undefined) {
-            // x, y are stored as pixel values relative to original canvas
-            // Convert to percentage then to current container size
             posLookup[c.id] = {
-              x: (c.x / 800) * width,  // assuming original canvas was 800px
+              x: (c.x / 800) * width,
               y: (c.y / 800) * height
             };
           }
@@ -795,7 +846,16 @@
           svgLayer.appendChild(path);
         });
 
-        // Render community cards
+        // Build topic lookup by community
+        const topicsByCommunity = {};
+        placedTopics.forEach(p => {
+          if (!topicsByCommunity[p.communityId]) {
+            topicsByCommunity[p.communityId] = [];
+          }
+          topicsByCommunity[p.communityId].push(p);
+        });
+
+        // Render community cards with topics as children
         communities.forEach(c => {
           if (c.x === undefined || c.y === undefined) return;
 
@@ -807,25 +867,23 @@
           card.className = `map-group-card size-${sizeClass}`;
           card.style.left = pos.x + 'px';
           card.style.top = pos.y + 'px';
-          card.innerHTML = `<span class="card-name">${escapeHtml(c.name)}</span>`;
+
+          let cardHTML = `<span class="card-name">${escapeHtml(c.name)}</span>`;
+
+          // Append topics
+          const cardTopics = topicsByCommunity[c.id] || [];
+          if (cardTopics.length > 0) {
+            cardHTML += '<div class="map-card-topics">';
+            cardTopics.forEach(placed => {
+              const topic = NEWS_TOPICS[placed.topicId];
+              if (!topic) return;
+              cardHTML += `<span class="map-card-topic-tag"><span class="topic-icon">${topic.icon}</span>${topic.short}</span>`;
+            });
+            cardHTML += '</div>';
+          }
+
+          card.innerHTML = cardHTML;
           canvas.appendChild(card);
-        });
-
-        // Render placed topics
-        const placedTopics = loadedData.placedTopics || [];
-        placedTopics.forEach(placed => {
-          const topic = NEWS_TOPICS[placed.topicId];
-          if (!topic) return;
-
-          const x = (placed.x / 800) * width;
-          const y = (placed.y / 800) * height;
-
-          const el = document.createElement('div');
-          el.className = 'map-topic-tag';
-          el.style.left = x + 'px';
-          el.style.top = y + 'px';
-          el.innerHTML = `<span class="topic-icon">${topic.icon}</span><span>${topic.short}</span>`;
-          canvas.appendChild(el);
         });
       }
 
@@ -924,6 +982,7 @@
       function renderTopicsTable() {
         const tbody = $('topics-table');
         const placedTopics = loadedData.placedTopics || [];
+        const communities = loadedData.communities || [];
 
         if (placedTopics.length === 0) {
           $('topics-table-container').classList.add('hidden');
@@ -934,18 +993,28 @@
         $('topics-table-container').classList.remove('hidden');
         $('no-topics').classList.add('hidden');
 
-        // Count topics
-        const topicCounts = {};
+        // Build community name lookup
+        const nameLookup = {};
+        communities.forEach(c => { nameLookup[c.id] = c.name; });
+
+        // Group by topicId + communityId
+        const grouped = {};
         placedTopics.forEach(p => {
-          topicCounts[p.topicId] = (topicCounts[p.topicId] || 0) + 1;
+          const key = `${p.topicId}__${p.communityId}`;
+          if (!grouped[key]) {
+            grouped[key] = { topicId: p.topicId, communityId: p.communityId, count: 0 };
+          }
+          grouped[key].count++;
         });
 
-        tbody.innerHTML = Object.entries(topicCounts).map(([topicId, count]) => {
-          const topic = NEWS_TOPICS[topicId] || { icon: '?', full: topicId };
+        tbody.innerHTML = Object.values(grouped).map(entry => {
+          const topic = NEWS_TOPICS[entry.topicId] || { icon: '?', full: entry.topicId };
+          const communityName = nameLookup[entry.communityId] || entry.communityId || '--';
           return `
             <tr>
               <td><span style="margin-right: 8px;">${topic.icon}</span> ${topic.full}</td>
-              <td>${count}</td>
+              <td>${escapeHtml(communityName)}</td>
+              <td>${entry.count}</td>
             </tr>
           `;
         }).join('');

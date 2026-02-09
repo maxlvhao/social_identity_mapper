@@ -17,9 +17,9 @@
       <div class="progress-steps">
         <span class="step" data-step="1">1. Communal Life</span>
         <span class="step" data-step="2">2. Details</span>
-        <span class="step" data-step="3">3. Position</span>
-        <span class="step" data-step="4">4. Discourse</span>
-        <span class="step" data-step="5">5. Topics</span>
+        <span class="step" data-step="3">3. Topics</span>
+        <span class="step" data-step="4">4. Position</span>
+        <span class="step" data-step="5">5. Discourse</span>
         <span class="step" data-step="6">6. Complete</span>
       </div>
     </header>
@@ -40,9 +40,9 @@
           <ol>
             <li>List the groups and communities you spend time with</li>
             <li>Provide details about each group</li>
+            <li>Place news topics onto the groups that consume them</li>
             <li>Map your groups visually based on information overlap</li>
             <li>Draw connections showing how easily topics flow between groups</li>
-            <li>Place news topics near the groups that consume them</li>
           </ol>
           <p>Your progress is saved automatically.</p>
         </div>
@@ -121,21 +121,22 @@
       </div>
     </section>
 
-    <!-- Step 3: Position Groups -->
+    <!-- Step 3: Topic Mapping (was step 5) -->
     <section id="step-3" class="step-screen">
       <div class="step-content">
         <div class="step-header compact">
-          <h2>Step 3: Position</h2>
-          <p class="instruction instruction-prominent">Place your communities on this map based on <strong>information overlap</strong>. Groups that share similar news topics or information should be placed <strong>closer together</strong>. Groups with little information overlap should be placed <strong>further apart</strong>.</p>
+          <h2>Step 3: Topic Mapping</h2>
+          <p class="instruction instruction-prominent">Drag news topics from the panel onto your community cards. Each topic will snap to the card you drop it on. You can place the same topic on multiple communities, and drag topics off a card to remove them.</p>
         </div>
 
-        <div id="canvas-container-step3" class="canvas-container flex-canvas">
-          <div id="groups-canvas-3" class="groups-canvas"></div>
-          <div id="drag-tutorial-3" class="tutorial-overlay">
-            <div class="tutorial-content">
-              <div class="tutorial-hand">👆</div>
-              <p>Drag communities to position them</p>
-            </div>
+        <div class="canvas-with-panel">
+          <div id="canvas-container-step3" class="canvas-container flex-canvas">
+            <div id="groups-canvas-3" class="groups-canvas"></div>
+          </div>
+
+          <div class="topics-panel" id="topics-panel">
+            <div class="topics-panel-header">News Topics</div>
+            <div class="topics-list" id="topics-list"></div>
           </div>
         </div>
 
@@ -146,22 +147,20 @@
       </div>
     </section>
 
-    <!-- Step 4: Connections -->
+    <!-- Step 4: Position Groups (was step 3) -->
     <section id="step-4" class="step-screen">
       <div class="step-content">
         <div class="step-header compact">
-          <h2>Step 4: Discourse patterns</h2>
-          <p class="instruction instruction-prominent"> Think about this scenario: if people from two  different groups talked what's in the news, would they understand each other easily, or would the conversation be difficult? Draw a line between each pair of groups to indicate your answer.</p>
+          <h2>Step 4: Position</h2>
+          <p class="instruction instruction-prominent">Place your communities on this map based on <strong>information overlap</strong>. Groups that share similar news topics or information should be placed <strong>closer together</strong>. Groups with little information overlap should be placed <strong>further apart</strong>.</p>
         </div>
 
         <div id="canvas-container-step4" class="canvas-container flex-canvas">
-          <svg id="connections-svg" class="connections-layer"></svg>
-          <svg id="drawing-svg" class="drawing-layer"></svg>
-          <div id="groups-canvas-4" class="groups-canvas locked"></div>
+          <div id="groups-canvas-4" class="groups-canvas"></div>
           <div id="drag-tutorial-4" class="tutorial-overlay">
             <div class="tutorial-content">
-              <div class="tutorial-hand">👆</div>
-              <p>Drag from one community to another to connect them</p>
+              <div class="tutorial-hand">&#x1F446;</div>
+              <p>Drag communities to position them</p>
             </div>
           </div>
         </div>
@@ -173,28 +172,23 @@
       </div>
     </section>
 
-    <!-- Step 5: Topic Mapping -->
+    <!-- Step 5: Discourse (was step 4) -->
     <section id="step-5" class="step-screen">
       <div class="step-content">
         <div class="step-header compact">
-          <h2>Step 5: Topic Mapping</h2>
-          <p class="instruction instruction-prominent">Drag news topics from the panel onto the map. Place each topic <strong>near the groups</strong> that typically consume that type of news. You can place the same topic multiple times.</p>
+          <h2>Step 5: Discourse patterns</h2>
+          <p class="instruction instruction-prominent"> Think about this scenario: if people from two  different groups talked what's in the news, would they understand each other easily, or would the conversation be difficult? Draw a line between each pair of groups to indicate your answer.</p>
         </div>
 
-        <div class="canvas-with-panel">
-          <div id="canvas-container-step5" class="canvas-container flex-canvas">
-            <svg id="topics-connections-svg" class="connections-layer"></svg>
-            <div id="groups-canvas-5" class="groups-canvas locked"></div>
-            <div id="placed-topics-layer" class="placed-topics-layer"></div>
-            <div id="topic-delete-zone" class="topic-delete-zone">
-              <span class="delete-icon">🗑️</span>
-              <span>Drop here to delete</span>
+        <div id="canvas-container-step5" class="canvas-container flex-canvas">
+          <svg id="connections-svg" class="connections-layer"></svg>
+          <svg id="drawing-svg" class="drawing-layer"></svg>
+          <div id="groups-canvas-5" class="groups-canvas locked"></div>
+          <div id="drag-tutorial-5" class="tutorial-overlay">
+            <div class="tutorial-content">
+              <div class="tutorial-hand">&#x1F446;</div>
+              <p>Drag from one community to another to connect them</p>
             </div>
-          </div>
-
-          <div class="topics-panel" id="topics-panel">
-            <div class="topics-panel-header">News Topics</div>
-            <div class="topics-list" id="topics-list"></div>
           </div>
         </div>
 
@@ -209,7 +203,7 @@
     <section id="step-6" class="step-screen">
       <div class="step-content">
         <div class="complete-header">
-          <div class="complete-icon">✓</div>
+          <div class="complete-icon">&#x2713;</div>
           <h2>Activity Complete!</h2>
           <p>You mapped <strong id="final-communities">0</strong> communities with <strong id="final-connections">0</strong> connections and <strong id="final-topics">0</strong> topic placements.</p>
         </div>
@@ -217,7 +211,6 @@
         <div id="final-canvas-container" class="canvas-container final-preview">
           <svg id="final-connections-svg" class="connections-layer"></svg>
           <div id="final-groups-canvas" class="groups-canvas locked"></div>
-          <div id="final-topics-layer" class="placed-topics-layer"></div>
         </div>
 
         <div class="qualtrics-reminder">

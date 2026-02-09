@@ -120,7 +120,8 @@ body {
 
 /* Canvas steps - no scroll, fit viewport */
 #step-3.step-screen,
-#step-4.step-screen {
+#step-4.step-screen,
+#step-5.step-screen {
   height: calc(100vh - 60px);
   min-height: auto;
   padding-bottom: 80px;
@@ -128,7 +129,8 @@ body {
 }
 
 #step-3 .step-content,
-#step-4 .step-content {
+#step-4 .step-content,
+#step-5 .step-content {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -533,251 +535,6 @@ body {
   background: #fafafa;
 }
 
-/* Belonging Cards */
-.belonging-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.belonging-card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-}
-
-.belonging-card h3 {
-  color: var(--community-color);
-  margin-bottom: 18px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--community-color);
-  font-size: 1.1rem;
-}
-
-.likert-group {
-  margin-bottom: 20px;
-}
-
-.likert-group > label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* Compact Likert scale - all 7 in one row */
-.likert-scale {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  background: var(--bg);
-  padding: 8px;
-  border-radius: 8px;
-}
-
-.likert-option {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-}
-
-.likert-option:hover {
-  background: #e3f2fd;
-}
-
-.likert-option input[type="radio"] {
-  accent-color: var(--primary);
-  width: 16px;
-  height: 16px;
-}
-
-.likert-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.likert-text {
-  font-size: 9px;
-  color: var(--text-light);
-  line-height: 1.2;
-}
-
-.likert-option input[type="radio"]:checked + .likert-label {
-  color: var(--primary);
-}
-
-/* Participation Cards */
-.participation-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.participation-card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-}
-
-.participation-card h3 {
-  color: var(--community-color);
-  margin-bottom: 18px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--community-color);
-  font-size: 1.1rem;
-}
-
-/* Slider styles */
-.slider-group {
-  margin-bottom: 18px;
-}
-
-.slider-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: var(--text);
-}
-
-.slider-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.slider-row span {
-  font-size: 12px;
-  color: var(--text-light);
-  min-width: 16px;
-}
-
-.slider-row input[type="range"] {
-  flex: 1;
-  height: 6px;
-  -webkit-appearance: none;
-  background: var(--border);
-  border-radius: 3px;
-  outline: none;
-}
-
-.slider-row input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  background: var(--primary);
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.slider-value {
-  background: var(--primary);
-  color: #fff;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 13px;
-  min-width: 30px;
-  text-align: center;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-}
-
-/* Checkbox styles */
-.checkbox-group {
-  margin-top: 18px;
-}
-
-.checkbox-group > label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 13px;
-}
-
-.checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
-}
-
-.checkbox-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--bg);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.checkbox-option:hover {
-  background: #e3f2fd;
-}
-
-.checkbox-option input[type="checkbox"] {
-  accent-color: var(--primary);
-  width: 14px;
-  height: 14px;
-}
-
-/* Info Norms Cards */
-.info-norms-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.info-norms-card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-}
-
-.info-norms-card h3 {
-  color: var(--community-color);
-  margin-bottom: 18px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--community-color);
-  font-size: 1.1rem;
-}
-
-.text-group {
-  margin-top: 18px;
-}
-
-.text-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.text-group textarea {
-  width: 100%;
-  min-height: 70px;
-  padding: 10px;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.text-group textarea:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
 /* No scroll layout */
 .no-scroll {
   height: 100%;
@@ -814,7 +571,6 @@ body {
 }
 
 .canvas-container.flex-canvas {
-  /* Fill remaining space, maintain square aspect ratio */
   flex: 1;
   width: 100%;
   max-width: 800px;
@@ -841,6 +597,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 10;
 }
 
 .groups-canvas.locked .group-card {
@@ -881,7 +638,7 @@ body {
   cursor: grab;
   user-select: none;
   box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
-  transition: box-shadow 0.2s, transform 0.1s;
+  transition: box-shadow 0.2s, transform 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 
 .group-card:hover {
@@ -938,6 +695,84 @@ body {
 .card-corner.tr { top: 4px; right: 6px; }
 .card-corner.bl { bottom: 4px; left: 6px; }
 .card-corner.br { bottom: 4px; right: 6px; }
+
+/* ==================== Card Topics (snapped below cards) ==================== */
+.card-topics {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding-top: 4px;
+  justify-content: center;
+  max-width: 180px;
+  pointer-events: auto;
+}
+
+.card-topic-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 7px;
+  background: white;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.2s cubic-bezier(0.4,0,0.2,1),
+              transform 0.2s cubic-bezier(0.4,0,0.2,1),
+              opacity 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card-topic-tag:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: scale(1.05);
+}
+
+.card-topic-tag:active {
+  cursor: grabbing;
+}
+
+.card-topic-tag .topic-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Snap-in animation for newly placed topics */
+.card-topic-tag.just-placed {
+  animation: topicSnapIn 300ms cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+@keyframes topicSnapIn {
+  0% { opacity: 0; transform: scale(0.9); }
+  70% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Ghost element while dragging topic */
+.topic-drag-ghost {
+  box-shadow: 0 4px 12px rgba(63,81,181,0.3);
+  border-color: var(--primary-dark);
+}
+
+/* Drop target highlight on cards */
+.group-card.drop-target-hint {
+  box-shadow: 0 0 0 3px rgba(63,81,181,0.15);
+  transition: box-shadow 0.25s cubic-bezier(0.4,0,0.2,1),
+              transform 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+.group-card.drop-target-active {
+  box-shadow: 0 0 0 4px rgba(63,81,181,0.35), 4px 4px 12px rgba(0,0,0,0.2);
+  transform: scale(1.02);
+}
 
 /* Me Block */
 .me-block {
@@ -1177,7 +1012,7 @@ body {
   color: var(--primary);
 }
 
-/* Topics Panel and Placed Topics */
+/* Topics Panel */
 .canvas-with-panel {
   display: flex;
   gap: 15px;
@@ -1187,7 +1022,6 @@ body {
 }
 
 .canvas-with-panel .canvas-container {
-  /* Keep same size as steps 3 and 4 - don't shrink for panel */
   flex: 0 0 auto;
 }
 
@@ -1255,126 +1089,6 @@ body {
   line-height: 1.2;
 }
 
-/* Placed topics layer - behind communities */
-.placed-topics-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 15;
-}
-
-/* Topics layer should be above communities for interaction */
-.groups-canvas {
-  z-index: 10;
-}
-
-.placed-topic {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 6px;
-  background: white;
-  border: 2px solid var(--primary);
-  border-radius: 10px;
-  font-size: 10px;
-  cursor: grab;
-  user-select: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
-  transition: box-shadow 0.2s, border-color 0.2s;
-  white-space: nowrap;
-  width: auto;
-  max-width: none;
-}
-
-.placed-topic:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  border-color: var(--primary-dark);
-}
-
-.placed-topic.dragging {
-  opacity: 0.9;
-  cursor: grabbing;
-  z-index: 100;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-}
-
-.placed-topic .topic-icon {
-  font-size: 11px;
-  line-height: 1;
-}
-
-.placed-topic .topic-short {
-  font-weight: 500;
-  line-height: 1;
-}
-
-/* Delete zone for topics */
-.topic-delete-zone {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--danger);
-  color: white;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  display: none;
-  align-items: center;
-  gap: 8px;
-  z-index: 200;
-  box-shadow: 0 2px 8px rgba(220,53,69,0.3);
-}
-
-.topic-delete-zone.visible {
-  display: flex;
-}
-
-.topic-delete-zone.hover {
-  background: #c82333;
-  transform: translateX(-50%) scale(1.05);
-}
-
-.topic-delete-zone .delete-icon {
-  font-size: 16px;
-}
-
-/* Topic tooltip */
-.topic-tooltip {
-  position: absolute;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 200;
-  transform: translateX(-50%);
-  bottom: calc(100% + 5px);
-  left: 50%;
-}
-
-/* Step 5 specific */
-#step-5.step-screen {
-  height: calc(100vh - 60px);
-  min-height: auto;
-  padding-bottom: 80px;
-  overflow: hidden;
-}
-
-#step-5 .step-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .progress-steps {
@@ -1393,29 +1107,6 @@ body {
 
   .community-item {
     flex-wrap: wrap;
-  }
-
-  .likert-scale {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .likert-option {
-    flex: 0 0 auto;
-    min-width: 60px;
-  }
-
-  .checkbox-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .slider-row {
-    flex-wrap: wrap;
-  }
-
-  .slider-row input[type="range"] {
-    width: 100%;
-    order: 3;
   }
 
   .canvas-with-panel {
