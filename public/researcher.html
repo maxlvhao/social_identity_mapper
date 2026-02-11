@@ -692,9 +692,9 @@
       // News Finds Me — Gil de Zúñiga, Weeks & Ardèvol-Abreu (2017)
       const NFM_LABELS = {
         wellInformedPassively: 'I can be well informed even when I don\'t actively follow the news',
-        newsWillFindMe: 'News will find me even when I don\'t look for it',
-        relyOnFriends: 'I rely on my friends/peers to tell me what\'s important',
-        relyOnFriendsSocialMedia: 'I rely on friends/social media to keep me informed'
+        newsWillFindMe: 'I don\'t worry about keeping up with the news because I know news will find me',
+        relyOnFriends: 'I rely on my friends to tell me what\'s important when news happens',
+        relyOnFriendsSocialMedia: 'I rely on information from my friends based on what they like or follow through social media'
       };
 
       // Authenticity Scale — Wood et al. (2008)
@@ -988,8 +988,8 @@
         // Communities table
         renderCommunitiesTable();
 
-        // Position map with connections and topics
-        renderMap();
+        // Position map with connections and topics (defer to ensure layout is computed)
+        requestAnimationFrame(() => renderMap());
 
         // Connections table
         renderConnectionsTable();
