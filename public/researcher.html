@@ -101,54 +101,6 @@
       white-space: nowrap;
     }
 
-    .session-list {
-      max-width: 500px;
-      margin: 20px auto 0;
-    }
-
-    .session-list h4 {
-      font-size: 13px;
-      color: var(--text-light);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .session-list-items {
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-
-    .session-list-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.15s;
-      font-size: 14px;
-    }
-
-    .session-list-item:last-child {
-      border-bottom: none;
-    }
-
-    .session-list-item:hover {
-      background: #f8f9ff;
-    }
-
-    .session-list-item .session-id {
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .session-list-item .session-date {
-      color: var(--text-light);
-      font-size: 12px;
-    }
-
     .loading-msg {
       text-align: center;
       color: var(--text-light);
@@ -578,13 +530,6 @@
       </div>
       <div id="error-container"></div>
 
-      <div class="session-list" id="session-list">
-        <h4>Recent Sessions</h4>
-        <div class="session-list-items" id="session-list-items">
-          <div class="loading-msg">Loading sessions...</div>
-        </div>
-      </div>
-
       <div class="load-divider">or upload a file</div>
 
       <div class="upload-area" id="upload-area">
@@ -828,7 +773,6 @@
         $('report-section').classList.remove('active');
         $('survey-section').classList.add('hidden');
         fileInput.value = '';
-        loadSessionList();
       });
 
       // Session ID lookup
@@ -897,43 +841,12 @@
         }).filter(p => p.communityId !== null);
       }
 
-      // Load and display recent sessions list
-      async function loadSessionList() {
-        const container = $('session-list-items');
-        try {
-          const res = await fetch('/api/sessions');
-          if (!res.ok) throw new Error('Failed to fetch');
-          const sessions = await res.json();
-
-          if (sessions.length === 0) {
-            container.innerHTML = '<div class="loading-msg">No sessions yet.</div>';
-            return;
-          }
-
-          container.innerHTML = sessions.map(s => {
-            const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString() : '';
-            return `<div class="session-list-item" data-id="${escapeHtml(s.session_id)}">
-              <span class="session-id">${escapeHtml(s.session_id)}</span>
-              <span class="session-date">${date}</span>
-            </div>`;
-          }).join('');
-
-          container.querySelectorAll('.session-list-item').forEach(el => {
-            el.addEventListener('click', () => loadSessionById(el.dataset.id));
-          });
-        } catch (err) {
-          container.innerHTML = '<div class="loading-msg">Could not load sessions.</div>';
-        }
-      }
-
       // Check if URL has a session ID parameter
       const urlParams = new URLSearchParams(window.location.search);
       const urlSessionId = urlParams.get('session');
       if (urlSessionId) {
         sessionInput.value = urlSessionId;
         loadSessionById(urlSessionId);
-      } else {
-        loadSessionList();
       }
 
       function loadFile(file) {

@@ -111,23 +111,6 @@ app.get('/api/session/:id/download', async (req, res) => {
   }
 });
 
-// List all sessions (for researcher view)
-app.get('/api/sessions', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('session_id, created_at, updated_at')
-      .order('updated_at', { ascending: false });
-
-    if (error) throw error;
-
-    res.json(data);
-  } catch (err) {
-    console.error('Failed to list sessions:', err.message);
-    res.status(500).json({ error: 'Failed to list sessions' });
-  }
-});
-
 // Get survey response data for a session
 app.get('/api/session/:id/survey', async (req, res) => {
   const sessionId = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
