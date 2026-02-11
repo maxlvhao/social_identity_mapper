@@ -234,9 +234,7 @@
     /* Map Preview - square like main app */
     .map-preview {
       width: 100%;
-      max-width: 600px;
-      aspect-ratio: 1 / 1;
-      margin: 0 auto;
+      min-height: 300px;
       background: white;
       border: 2px solid var(--border);
       border-radius: 12px;
@@ -1072,10 +1070,13 @@
 
         if (minX === Infinity) return;
 
-        // 2. Add padding, compute content size and scale
+        // 2. Add padding, set container height to match content ratio, compute scale
         const pad = 20;
         const contentWidth = maxX - minX + pad * 2;
         const contentHeight = maxY - minY + pad * 2;
+        const contentRatio = contentHeight / contentWidth;
+        container.style.height = Math.round(containerWidth * contentRatio) + 'px';
+        const containerHeight = container.clientHeight;
         const scale = Math.min(containerWidth / contentWidth, containerHeight / contentHeight, 1);
 
         // 3. Center the scaled content in the container
