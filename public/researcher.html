@@ -314,7 +314,7 @@
       pointer-events: none;
     }
 
-    /* Group cards on map */
+    /* Group cards on map — use original sizes, CSS scale handles fitting */
     .map-group-card {
       position: absolute;
       border-radius: 6px;
@@ -324,24 +324,23 @@
       justify-content: center;
       user-select: none;
       box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
-      transform: translate(-50%, -50%);
     }
 
     .map-group-card.size-high {
-      width: 90px;
-      height: 90px;
+      width: 130px;
+      height: 130px;
       background: var(--importance-high);
     }
 
     .map-group-card.size-medium {
-      width: 70px;
-      height: 70px;
+      width: 100px;
+      height: 100px;
       background: var(--importance-medium);
     }
 
     .map-group-card.size-low {
-      width: 55px;
-      height: 55px;
+      width: 75px;
+      height: 75px;
       background: var(--importance-low);
     }
 
@@ -349,15 +348,15 @@
       color: white;
       font-weight: 600;
       text-align: center;
-      padding: 4px;
-      font-size: 10px;
+      padding: 5px;
+      font-size: 13px;
       word-break: break-word;
       text-shadow: 0 1px 2px rgba(0,0,0,0.2);
       line-height: 1.2;
     }
 
     .map-group-card.size-low .card-name {
-      font-size: 9px;
+      font-size: 11px;
     }
 
     /* Topics attached to map cards */
@@ -456,6 +455,111 @@
       padding: 20px;
       font-style: italic;
     }
+
+    /* ==================== Survey Data Styles ==================== */
+
+    /* Demographics grid */
+    .demographics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .demo-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-radius: 8px;
+    }
+
+    .demo-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-light);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .demo-value {
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Scale charts */
+    .scale-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scale-label {
+      width: 280px;
+      min-width: 280px;
+      font-size: 13px;
+      line-height: 1.3;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .scale-bar-track {
+      flex: 1;
+      height: 22px;
+      background: #eef0f4;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .scale-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      min-width: 2px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .scale-bar-fill.nfm {
+      background: linear-gradient(90deg, #7986CB, #3F51B5);
+    }
+
+    .scale-bar-fill.auth {
+      background: linear-gradient(90deg, #81C784, #43A047);
+    }
+
+    .scale-value {
+      width: 36px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .scale-max-label {
+      font-size: 11px;
+      color: var(--text-light);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .scale-label {
+        width: 160px;
+        min-width: 160px;
+        font-size: 12px;
+      }
+
+      .demographics-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+    }
   </style>
 </head>
 <body>
@@ -497,6 +601,35 @@
           <span>Created: <strong id="report-date">--</strong></span>
         </div>
         <button class="btn btn-secondary" id="load-another">Load Another File</button>
+      </div>
+
+      <!-- Survey Data (shown only when a matching survey_responses row exists) -->
+      <div id="survey-section" class="hidden">
+        <!-- Demographics -->
+        <div class="report-card" id="demographics-card">
+          <h3>Demographics</h3>
+          <div class="demographics-grid" id="demographics-grid"></div>
+        </div>
+
+        <!-- News Finds Me Scale -->
+        <div class="report-card" id="nfm-card">
+          <h3>News Finds Me</h3>
+          <p style="color: var(--text-light); font-size: 13px; margin-bottom: 15px;">
+            Agreement scale (1–10). Higher scores indicate stronger agreement.
+          </p>
+          <div class="scale-chart" id="nfm-chart"></div>
+          <div class="scale-max-label">Scale: 1–10</div>
+        </div>
+
+        <!-- Authenticity Scale -->
+        <div class="report-card" id="auth-card">
+          <h3>Authenticity Scale</h3>
+          <p style="color: var(--text-light); font-size: 13px; margin-bottom: 15px;">
+            Self-description scale (1–7). Higher scores indicate stronger agreement.
+          </p>
+          <div class="scale-chart" id="auth-chart"></div>
+          <div class="scale-max-label">Scale: 1–7</div>
+        </div>
       </div>
 
       <!-- Communities Section -->
@@ -593,6 +726,63 @@
         'difficult': 'Difficult'
       };
 
+      // ==================== Survey Label Maps ====================
+
+      const DEMO_LABELS = {
+        age: 'Age',
+        gender: 'Gender',
+        genderOther: 'Gender (Other)',
+        race: 'Race / Ethnicity',
+        raceOther: 'Race (Other)',
+        year: 'Year',
+        yearOther: 'Year (Other)',
+        isStudent: 'Student Status',
+        isFirstGen: 'First Generation',
+        isTransfer: 'Transfer Student',
+        isInternational: 'International Student',
+        sexAtBirth: 'Sex at Birth',
+        sexOther: 'Sex (Other)',
+        sexualOrientation: 'Sexual Orientation',
+        sexualOrientationOther: 'Sexual Orientation (Other)'
+      };
+
+      // News Finds Me — Gil de Zúñiga, Weeks & Ardèvol-Abreu (2017)
+      const NFM_LABELS = {
+        wellInformedPassively: 'I can be well informed even when I don\'t actively follow the news',
+        newsWillFindMe: 'News will find me even when I don\'t look for it',
+        relyOnFriends: 'I rely on my friends/peers to tell me what\'s important',
+        relyOnFriendsSocialMedia: 'I rely on friends/social media to keep me informed'
+      };
+
+      // Authenticity Scale — Wood et al. (2008)
+      // Subscales: Authentic Living (AL), Accepting External Influence (AEI), Self-Alienation (SA)
+      const AUTH_LABELS = {
+        // Authentic Living
+        betterToBeYourself: 'I think it is better to be yourself than to be popular',
+        standByBeliefs: 'I always stand by what I believe in',
+        trueToMyself: 'I am true to myself in most situations',
+        liveByValues: 'I live in accordance with my values and beliefs',
+        // Accepting External Influence
+        influencedByOpinions: 'I am strongly influenced by the opinions of others',
+        doWhatOthersTell: 'I usually do what other people tell me to do',
+        doWhatOthersExpect: 'I always feel I need to do what others expect me to do',
+        othersInfluenceGreatly: 'Other people influence me greatly',
+        // Self-Alienation
+        dontKnowHowIFeel: 'I don\'t know how I really feel inside',
+        dontKnowMyself: 'I feel as if I don\'t know myself very well',
+        outOfTouchRealMe: 'I feel out of touch with the "real me"',
+        alienatedFromSelf: 'I feel alienated from myself'
+      };
+
+      function humanizeKey(key) {
+        return key
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/[_-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .replace(/^\w/, c => c.toUpperCase());
+      }
+
       const NEWS_TOPICS = {
         'international': { icon: '\u{1F30D}', short: 'International', full: 'International / World News' },
         'national': { icon: '\u{1F3DB}\uFE0F', short: 'National', full: 'National Politics' },
@@ -636,6 +826,7 @@
       $('load-another').addEventListener('click', () => {
         $('upload-section').style.display = 'block';
         $('report-section').classList.remove('active');
+        $('survey-section').classList.add('hidden');
         fileInput.value = '';
         loadSessionList();
       });
@@ -759,7 +950,113 @@
         reader.readAsText(file);
       }
 
-      function renderReport() {
+      // ==================== Survey Data ====================
+
+      async function loadSurveyData(sessionId) {
+        try {
+          const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}/survey`);
+          if (!res.ok) return null;
+          return await res.json();
+        } catch {
+          return null;
+        }
+      }
+
+      function renderSurveyData(surveyData) {
+        const section = $('survey-section');
+
+        if (!surveyData) {
+          section.classList.add('hidden');
+          return;
+        }
+
+        section.classList.remove('hidden');
+
+        // Demographics
+        if (surveyData.demographics && Object.keys(surveyData.demographics).length > 0) {
+          $('demographics-card').classList.remove('hidden');
+          renderDemographics(surveyData.demographics);
+        } else {
+          $('demographics-card').classList.add('hidden');
+        }
+
+        // News Finds Me
+        if (surveyData.newsFindsMe && Object.keys(surveyData.newsFindsMe).length > 0) {
+          $('nfm-card').classList.remove('hidden');
+          renderScaleChart('nfm-chart', surveyData.newsFindsMe, 10, NFM_LABELS, 'nfm');
+        } else {
+          $('nfm-card').classList.add('hidden');
+        }
+
+        // Authenticity Scale
+        if (surveyData.authenticityScale && Object.keys(surveyData.authenticityScale).length > 0) {
+          $('auth-card').classList.remove('hidden');
+          renderScaleChart('auth-chart', surveyData.authenticityScale, 7, AUTH_LABELS, 'auth');
+        } else {
+          $('auth-card').classList.add('hidden');
+        }
+      }
+
+      function renderDemographics(demo) {
+        const grid = $('demographics-grid');
+        // Filter out empty/null values so we only show fields that have data
+        const entries = Object.entries(demo).filter(([key, value]) =>
+          value !== null && value !== undefined && value !== ''
+        );
+        if (entries.length === 0) {
+          $('demographics-card').classList.add('hidden');
+          return;
+        }
+        grid.innerHTML = entries.map(([key, value]) => {
+          const label = DEMO_LABELS[key] || humanizeKey(key);
+          return `
+            <div class="demo-item">
+              <span class="demo-label">${escapeHtml(label)}</span>
+              <span class="demo-value">${escapeHtml(String(value))}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderScaleChart(containerId, items, maxValue, labelMap, colorClass) {
+        const container = $(containerId);
+        // Filter out empty/null values
+        const entries = Object.entries(items).filter(([key, value]) =>
+          value !== null && value !== undefined && value !== ''
+        );
+
+        if (entries.length === 0) {
+          container.closest('.report-card').classList.add('hidden');
+          return;
+        }
+
+        container.innerHTML = entries.map(([key, value]) => {
+          const label = labelMap[key] || humanizeKey(key);
+          const numValue = parseFloat(value) || 0;
+          const pct = Math.min((numValue / maxValue) * 100, 100);
+          return `
+            <div class="scale-row">
+              <div class="scale-label">${escapeHtml(label)}</div>
+              <div class="scale-bar-track">
+                <div class="scale-bar-fill ${colorClass}" style="width: 0%"
+                     data-target-width="${pct}%"></div>
+              </div>
+              <div class="scale-value">${numValue}</div>
+            </div>
+          `;
+        }).join('');
+
+        // Animate bars in after a brief delay
+        requestAnimationFrame(() => {
+          container.querySelectorAll('.scale-bar-fill').forEach(bar => {
+            bar.style.width = bar.dataset.targetWidth;
+          });
+        });
+      }
+
+      // ==================== Report Rendering ====================
+
+      async function renderReport() {
         if (!loadedData) return;
 
         $('upload-section').style.display = 'none';
@@ -768,6 +1065,14 @@
         // Header info
         $('report-session').textContent = loadedData.sessionId || 'Unknown';
         $('report-date').textContent = loadedData.createdAt ? new Date(loadedData.createdAt).toLocaleDateString() : '--';
+
+        // Survey data (fetched async, shown above activity data if available)
+        const sessionId = loadedData.sessionId;
+        if (sessionId) {
+          loadSurveyData(sessionId).then(renderSurveyData);
+        } else {
+          $('survey-section').classList.add('hidden');
+        }
 
         // Communities table
         renderCommunitiesTable();
@@ -818,47 +1123,96 @@
         const connections = loadedData.connections || [];
         const placedTopics = loadedData.placedTopics || [];
 
-        // Get container dimensions
-        const rect = container.getBoundingClientRect();
-        const width = rect.width;
-        const height = rect.height;
+        if (communities.length === 0) return;
 
-        // Build lookup for community positions
-        const posLookup = {};
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        // Card sizes matching the main app
+        function cardSize(importance) {
+          return importance === 'high' ? 130 : importance === 'low' ? 75 : 100;
+        }
+
+        // 1. Calculate bounding box of all content in original coordinates
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
         communities.forEach(c => {
-          if (c.x !== undefined && c.y !== undefined) {
-            posLookup[c.id] = {
-              x: (c.x / 800) * width,
-              y: (c.y / 800) * height
-            };
+          if (c.x == null || c.y == null) return;
+          const s = cardSize(c.importance);
+          if (c.x < minX) minX = c.x;
+          if (c.y < minY) minY = c.y;
+          if (c.x + s > maxX) maxX = c.x + s;
+          if (c.y + s > maxY) maxY = c.y + s;
+
+          // Account for topics extending below and sideways
+          const topicCount = placedTopics.filter(p => p.communityId === c.id).length;
+          if (topicCount > 0) {
+            const topicHeight = Math.ceil(topicCount / 2) * 24 + 8;
+            if (c.y + s + topicHeight > maxY) maxY = c.y + s + topicHeight;
+            const center = c.x + s / 2;
+            const half = 65; // half of map-card-topics max-width (120) + margin
+            if (center - half < minX) minX = center - half;
+            if (center + half > maxX) maxX = center + half;
           }
         });
 
-        // Render connections first (behind cards)
+        if (minX === Infinity) return;
+
+        // 2. Add padding, compute content size and scale
+        const pad = 20;
+        const contentWidth = maxX - minX + pad * 2;
+        const contentHeight = maxY - minY + pad * 2;
+        const scale = Math.min(containerWidth / contentWidth, containerHeight / contentHeight, 1);
+
+        // 3. Center the scaled content in the container
+        const offsetX = (containerWidth - contentWidth * scale) / 2;
+        const offsetY = (containerHeight - contentHeight * scale) / 2;
+
+        // Apply to both layers
+        [canvas, svgLayer].forEach(el => {
+          el.style.width = contentWidth + 'px';
+          el.style.height = contentHeight + 'px';
+          el.style.transform = `scale(${scale})`;
+          el.style.transformOrigin = 'top left';
+          el.style.left = offsetX + 'px';
+          el.style.top = offsetY + 'px';
+        });
+
+        // 4. Build offset positions (shift so content starts at padding)
+        const posLookup = {};
+        communities.forEach(c => {
+          if (c.x == null || c.y == null) return;
+          const s = cardSize(c.importance);
+          posLookup[c.id] = {
+            x: c.x - minX + pad,
+            y: c.y - minY + pad,
+            cx: c.x - minX + pad + s / 2,
+            cy: c.y - minY + pad + s / 2
+          };
+        });
+
+        // 5. Render connections (using center points)
         connections.forEach(conn => {
           const fromPos = posLookup[conn.from];
           const toPos = posLookup[conn.to];
           if (!fromPos || !toPos) return;
 
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('d', getConnectionPath(fromPos.x, fromPos.y, toPos.x, toPos.y, conn.type));
+          path.setAttribute('d', getConnectionPath(fromPos.cx, fromPos.cy, toPos.cx, toPos.cy, conn.type));
           path.setAttribute('class', `conn-${conn.type}`);
           svgLayer.appendChild(path);
         });
 
-        // Build topic lookup by community
+        // 6. Build topic lookup
         const topicsByCommunity = {};
         placedTopics.forEach(p => {
-          if (!topicsByCommunity[p.communityId]) {
-            topicsByCommunity[p.communityId] = [];
-          }
+          if (!topicsByCommunity[p.communityId]) topicsByCommunity[p.communityId] = [];
           topicsByCommunity[p.communityId].push(p);
         });
 
-        // Render community cards with topics as children
+        // 7. Render cards at top-left positions
         communities.forEach(c => {
-          if (c.x === undefined || c.y === undefined) return;
-
           const pos = posLookup[c.id];
           if (!pos) return;
 
@@ -870,7 +1224,6 @@
 
           let cardHTML = `<span class="card-name">${escapeHtml(c.name)}</span>`;
 
-          // Append topics
           const cardTopics = topicsByCommunity[c.id] || [];
           if (cardTopics.length > 0) {
             cardHTML += '<div class="map-card-topics">';

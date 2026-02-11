@@ -128,6 +128,31 @@ app.get('/api/sessions', async (req, res) => {
   }
 });
 
+// Get survey response data for a session
+app.get('/api/session/:id/survey', async (req, res) => {
+  const sessionId = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
+
+  try {
+    const { data, error } = await supabase
+      .from('survey_responses')
+      .select('data')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'No survey data found' });
+      }
+      throw error;
+    }
+
+    res.json(data.data);
+  } catch (err) {
+    console.error('Failed to read survey data:', err.message);
+    res.status(500).json({ error: 'Failed to read survey data' });
+  }
+});
+
 // Fallback to index.html for SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
