@@ -575,6 +575,9 @@
         </div>
       </div>
 
+      <!-- Activity Data (hidden when only survey data exists) -->
+      <div id="activity-section">
+
       <!-- Communities Section -->
       <div class="report-card">
         <h3>Communities</h3>
@@ -647,6 +650,8 @@
         </table>
         <div class="empty-state hidden" id="no-topics">No topics placed.</div>
       </div>
+
+      </div><!-- /activity-section -->
     </div>
   </div>
 
@@ -789,13 +794,29 @@
 
         try {
           const res = await fetch(`/api/session/${encodeURIComponent(id)}`);
-          if (!res.ok) {
-            errorContainer.innerHTML = '<div class="error-msg">Session not found. Check the ID and try again.</div>';
+          if (res.ok) {
+            loadedData = await res.json();
+            migratePlacedTopics();
+            renderReport();
             return;
           }
-          loadedData = await res.json();
-          migratePlacedTopics();
-          renderReport();
+
+          // Session data not found — check if survey-only data exists
+          const surveyData = await loadSurveyData(id);
+          if (surveyData) {
+            // Create a minimal loadedData shell so renderReport can proceed
+            loadedData = {
+              sessionId: id,
+              createdAt: null,
+              communities: [],
+              connections: [],
+              placedTopics: []
+            };
+            renderReport(surveyData);
+            return;
+          }
+
+          errorContainer.innerHTML = '<div class="error-msg">Session not found. Check the ID and try again.</div>';
         } catch (err) {
           errorContainer.innerHTML = '<div class="error-msg">Failed to load session. Please try again.</div>';
         }
@@ -967,7 +988,7 @@
 
       // ==================== Report Rendering ====================
 
-      async function renderReport() {
+      async function renderReport(prefetchedSurvey) {
         if (!loadedData) return;
 
         $('upload-section').style.display = 'none';
@@ -977,25 +998,43 @@
         $('report-session').textContent = loadedData.sessionId || 'Unknown';
         $('report-date').textContent = loadedData.createdAt ? new Date(loadedData.createdAt).toLocaleDateString() : '--';
 
-        // Survey data (fetched async, shown above activity data if available)
-        const sessionId = loadedData.sessionId;
-        if (sessionId) {
-          loadSurveyData(sessionId).then(renderSurveyData);
-        } else {
-          $('survey-section').classList.add('hidden');
+        // Determine if there is activity data (communities/connections/topics)
+        const hasActivityData = (loadedData.communities && loadedData.communities.length > 0)
+          || (loadedData.connections && loadedData.connections.length > 0)
+          || (loadedData.placedTopics && loadedData.placedTopics.length > 0);
+
+        // Show/hide activity sections
+        const activityCards = $('activity-section');
+        if (activityCards) {
+          activityCards.style.display = hasActivityData ? 'block' : 'none';
         }
 
-        // Communities table
-        renderCommunitiesTable();
+        // Survey data
+        if (prefetchedSurvey) {
+          // Already have survey data (survey-only path)
+          renderSurveyData(prefetchedSurvey);
+        } else {
+          const sessionId = loadedData.sessionId;
+          if (sessionId) {
+            loadSurveyData(sessionId).then(renderSurveyData);
+          } else {
+            $('survey-section').classList.add('hidden');
+          }
+        }
 
-        // Position map with connections and topics (defer to ensure layout is computed)
-        requestAnimationFrame(() => renderMap());
+        if (hasActivityData) {
+          // Communities table
+          renderCommunitiesTable();
 
-        // Connections table
-        renderConnectionsTable();
+          // Position map with connections and topics (defer to ensure layout is computed)
+          requestAnimationFrame(() => renderMap());
 
-        // Topics table
-        renderTopicsTable();
+          // Connections table
+          renderConnectionsTable();
+
+          // Topics table
+          renderTopicsTable();
+        }
       }
 
       function renderCommunitiesTable() {
