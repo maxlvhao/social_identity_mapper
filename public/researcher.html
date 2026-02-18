@@ -499,6 +499,37 @@
       margin-top: 4px;
     }
 
+    /* Download buttons */
+    .download-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      background: white;
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-download:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-download svg {
+      flex-shrink: 0;
+    }
+
     @media (max-width: 768px) {
       .scale-label {
         width: 160px;
@@ -508,6 +539,34 @@
 
       .demographics-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+    }
+
+    /* Print styles */
+    @media print {
+      body { background: white; }
+      .back-link,
+      .report-header .btn-secondary,
+      .download-buttons,
+      .upload-section { display: none !important; }
+
+      .researcher-page { padding: 0; max-width: 100%; }
+      .report-section { display: block !important; }
+
+      .report-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ddd;
+      }
+
+      .map-preview {
+        break-inside: avoid;
+        border-color: #ddd;
+      }
+
+      .session-info-bar {
+        box-shadow: none;
+        border: 1px solid #ddd;
       }
     }
   </style>
@@ -543,7 +602,19 @@
           <span>Session: <strong id="report-session">--</strong></span>
           <span>Created: <strong id="report-date">--</strong></span>
         </div>
-        <button class="btn btn-secondary" id="load-another">Load Another File</button>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div class="download-buttons">
+            <button class="btn-download" id="download-pdf" title="Print / Save as PDF">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12H2V14H14V12H12"/><path d="M4 1V10H12V1"/><path d="M7 7L8 9L9 7"/><path d="M8 4V9"/></svg>
+              PDF
+            </button>
+            <button class="btn-download" id="download-json" title="Download raw JSON data">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1V11M8 11L5 8M8 11L11 8"/><path d="M2 13H14"/></svg>
+              JSON
+            </button>
+          </div>
+          <button class="btn btn-secondary" id="load-another">Load Another File</button>
+        </div>
       </div>
 
       <!-- Survey Data (shown only when a matching survey_responses row exists) -->
@@ -1331,6 +1402,54 @@
         div.textContent = text;
         return div.innerHTML;
       }
+
+      // ==================== Downloads ====================
+
+      // Helper: trigger a file download in the browser
+      function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      // PDF: open the browser print dialog (user can "Save as PDF")
+      $('download-pdf').addEventListener('click', () => {
+        window.print();
+      });
+
+      // JSON: download activity data and survey data as separate JSON files
+      $('download-json').addEventListener('click', async () => {
+        if (!loadedData) return;
+        const sessionId = loadedData.sessionId || 'unknown';
+
+        // Download activity data
+        downloadFile(
+          `session-${sessionId}.json`,
+          JSON.stringify(loadedData, null, 2),
+          'application/json'
+        );
+
+        // Also download survey data if available
+        if (sessionId && sessionId !== 'unknown') {
+          try {
+            const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}/survey`);
+            if (res.ok) {
+              const surveyData = await res.json();
+              downloadFile(
+                `survey-${sessionId}.json`,
+                JSON.stringify(surveyData, null, 2),
+                'application/json'
+              );
+            }
+          } catch { /* no survey data, skip */ }
+        }
+      });
 
     })();
   </script>
