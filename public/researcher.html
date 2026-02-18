@@ -613,6 +613,7 @@
       }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 </head>
 <body>
   <div class="researcher-page">
@@ -1461,17 +1462,49 @@
         URL.revokeObjectURL(url);
       }
 
-      // Re-render map for print dimensions so it doesn't clip
-      window.addEventListener('beforeprint', () => {
-        if (loadedData) renderMap();
-      });
-      window.addEventListener('afterprint', () => {
-        if (loadedData) renderMap();
-      });
+      // PDF: generate and open in new tab
+      $('download-pdf').addEventListener('click', async () => {
+        if (!loadedData) return;
+        const btn = $('download-pdf');
+        const origText = btn.innerHTML;
+        btn.innerHTML = 'Generating...';
+        btn.disabled = true;
 
-      // PDF: open the browser print dialog (user can "Save as PDF")
-      $('download-pdf').addEventListener('click', () => {
-        window.print();
+        try {
+          const reportEl = $('report-section');
+
+          // Temporarily hide non-report UI for capture
+          const downloadBtns = document.querySelector('.download-buttons');
+          const loadAnotherBtn = $('load-another');
+          downloadBtns.style.display = 'none';
+          loadAnotherBtn.style.display = 'none';
+
+          const sessionId = loadedData.sessionId || 'report';
+          const pdf = await html2pdf()
+            .set({
+              margin: [10, 10, 10, 10],
+              filename: `session-${sessionId}.pdf`,
+              image: { type: 'jpeg', quality: 0.95 },
+              html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+              jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            })
+            .from(reportEl)
+            .outputPdf('blob');
+
+          // Restore UI
+          downloadBtns.style.display = '';
+          loadAnotherBtn.style.display = '';
+
+          const url = URL.createObjectURL(pdf);
+          window.open(url, '_blank');
+        } catch (err) {
+          console.error('PDF generation failed:', err);
+          alert('Failed to generate PDF. Please try again.');
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
       });
 
       // JSON: download activity data and survey data as separate JSON files
