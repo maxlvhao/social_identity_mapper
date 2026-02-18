@@ -1192,9 +1192,10 @@
 
         const containerWidth = container.clientWidth;
 
-        // Card sizes matching the main app
-        function cardSize(importance) {
-          return importance === 'high' ? 130 : importance === 'low' ? 75 : 100;
+        // Original card sizes in the main app
+        const BASE_SIZES = { high: 130, medium: 100, low: 75 };
+        function baseSize(importance) {
+          return BASE_SIZES[importance] || BASE_SIZES.medium;
         }
 
         // 1. Calculate bounding box of all content in original coordinates
@@ -1203,7 +1204,7 @@
 
         communities.forEach(c => {
           if (c.x == null || c.y == null) return;
-          const s = cardSize(c.importance);
+          const s = baseSize(c.importance);
           if (c.x < minX) minX = c.x;
           if (c.y < minY) minY = c.y;
           if (c.x + s > maxX) maxX = c.x + s;
@@ -1215,7 +1216,7 @@
             const topicHeight = Math.ceil(topicCount / 2) * 24 + 8;
             if (c.y + s + topicHeight > maxY) maxY = c.y + s + topicHeight;
             const center = c.x + s / 2;
-            const half = 65; // half of map-card-topics max-width (120) + margin
+            const half = 65;
             if (center - half < minX) minX = center - half;
             if (center + half > maxX) maxX = center + half;
           }
@@ -1223,7 +1224,7 @@
 
         if (minX === Infinity) return;
 
-        // 2. Add padding, set container height to match content ratio, compute scale
+        // 2. Compute scale to fit content into the container (no CSS transform)
         const pad = 20;
         const contentWidth = maxX - minX + pad * 2;
         const contentHeight = maxY - minY + pad * 2;
@@ -1232,34 +1233,39 @@
         const containerHeight = container.clientHeight;
         const scale = Math.min(containerWidth / contentWidth, containerHeight / contentHeight, 1);
 
-        // 3. Center the scaled content in the container
+        // 3. Offsets to center the scaled content
         const offsetX = (containerWidth - contentWidth * scale) / 2;
         const offsetY = (containerHeight - contentHeight * scale) / 2;
 
-        // Apply to both layers
+        // 4. Set layers to fill container — NO CSS transform
         [canvas, svgLayer].forEach(el => {
-          el.style.width = contentWidth + 'px';
-          el.style.height = contentHeight + 'px';
-          el.style.transform = `scale(${scale})`;
-          el.style.transformOrigin = 'top left';
-          el.style.left = offsetX + 'px';
-          el.style.top = offsetY + 'px';
+          el.style.width = containerWidth + 'px';
+          el.style.height = containerHeight + 'px';
+          el.style.transform = 'none';
+          el.style.transformOrigin = '';
+          el.style.left = '0';
+          el.style.top = '0';
         });
 
-        // 4. Build offset positions (shift so content starts at padding)
+        // 5. Build pre-scaled positions
         const posLookup = {};
         communities.forEach(c => {
           if (c.x == null || c.y == null) return;
-          const s = cardSize(c.importance);
+          const s = baseSize(c.importance);
+          const rx = (c.x - minX + pad) * scale + offsetX;
+          const ry = (c.y - minY + pad) * scale + offsetY;
+          const rs = s * scale;
           posLookup[c.id] = {
-            x: c.x - minX + pad,
-            y: c.y - minY + pad,
-            cx: c.x - minX + pad + s / 2,
-            cy: c.y - minY + pad + s / 2
+            x: rx,
+            y: ry,
+            w: rs,
+            h: rs,
+            cx: rx + rs / 2,
+            cy: ry + rs / 2
           };
         });
 
-        // 5. Render connections (using center points)
+        // 6. Render connections at scaled positions
         connections.forEach(conn => {
           const fromPos = posLookup[conn.from];
           const toPos = posLookup[conn.to];
@@ -1271,33 +1277,36 @@
           svgLayer.appendChild(path);
         });
 
-        // 6. Build topic lookup
+        // 7. Build topic lookup
         const topicsByCommunity = {};
         placedTopics.forEach(p => {
           if (!topicsByCommunity[p.communityId]) topicsByCommunity[p.communityId] = [];
           topicsByCommunity[p.communityId].push(p);
         });
 
-        // 7. Render cards at top-left positions
+        // 8. Render cards at pre-scaled positions with inline sizes
+        const fontScale = Math.max(scale, 0.6); // don't let text get too tiny
         communities.forEach(c => {
           const pos = posLookup[c.id];
           if (!pos) return;
 
-          const sizeClass = c.importance || 'medium';
           const card = document.createElement('div');
-          card.className = `map-group-card size-${sizeClass}`;
+          card.className = 'map-group-card size-' + (c.importance || 'medium');
           card.style.left = pos.x + 'px';
           card.style.top = pos.y + 'px';
+          card.style.width = pos.w + 'px';
+          card.style.height = pos.h + 'px';
 
-          let cardHTML = `<span class="card-name">${escapeHtml(c.name)}</span>`;
+          let cardHTML = `<span class="card-name" style="font-size:${Math.round(13 * fontScale)}px">${escapeHtml(c.name)}</span>`;
 
           const cardTopics = topicsByCommunity[c.id] || [];
           if (cardTopics.length > 0) {
-            cardHTML += '<div class="map-card-topics">';
+            const topicTagScale = Math.max(scale, 0.7);
+            cardHTML += `<div class="map-card-topics" style="max-width:${Math.round(120 * scale)}px">`;
             cardTopics.forEach(placed => {
               const topic = NEWS_TOPICS[placed.topicId];
               if (!topic) return;
-              cardHTML += `<span class="map-card-topic-tag"><span class="topic-icon">${topic.icon}</span>${topic.short}</span>`;
+              cardHTML += `<span class="map-card-topic-tag" style="font-size:${Math.round(8 * topicTagScale)}px"><span class="topic-icon">${topic.icon}</span>${topic.short}</span>`;
             });
             cardHTML += '</div>';
           }
@@ -1479,27 +1488,35 @@
           downloadBtns.style.display = 'none';
           loadAnotherBtn.style.display = 'none';
 
-          // Temporarily allow map overflow so html2canvas captures the full map
-          const mapPreview = $('map-preview');
-          if (mapPreview) mapPreview.style.overflow = 'visible';
-
           const sessionId = loadedData.sessionId || 'report';
-          await html2pdf()
+          const pdfFilename = `${sessionId}.pdf`;
+
+          // Generate PDF blob, then download with explicit filename
+          const pdfBlob = await html2pdf()
             .set({
               margin: [10, 10, 10, 10],
-              filename: `${sessionId}.pdf`,
+              filename: pdfFilename,
               image: { type: 'jpeg', quality: 0.95 },
               html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
               jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
               pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             })
             .from(reportEl)
-            .save();
+            .outputPdf('blob');
+
+          // Force download with correct filename via anchor click
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = pdfFilename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
 
           // Restore UI
           downloadBtns.style.display = '';
           loadAnotherBtn.style.display = '';
-          if (mapPreview) mapPreview.style.overflow = '';
         } catch (err) {
           console.error('PDF generation failed:', err);
           alert('Failed to generate PDF. Please try again.');
