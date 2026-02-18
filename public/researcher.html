@@ -239,7 +239,7 @@
       border: 2px solid var(--border);
       border-radius: 12px;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       background-image:
         linear-gradient(var(--border) 1px, transparent 1px),
         linear-gradient(90deg, var(--border) 1px, transparent 1px);
@@ -1491,12 +1491,11 @@
           const sessionId = loadedData.sessionId || 'report';
           const pdfFilename = `${sessionId}.pdf`;
 
-          // Temporarily set page title to desired filename (Safari uses title as download name)
+          // Set page title to desired filename (browsers may use title as fallback name)
           const origTitle = document.title;
-          document.title = pdfFilename;
+          document.title = sessionId;
 
-          // Capture at screen width so the map layout isn't reflowed into a narrower PDF container.
-          // Use onclone to ensure the map container doesn't clip in the cloned DOM.
+          // Use windowWidth to preserve screen-width layout in the html2canvas clone
           const screenWidth = document.documentElement.scrollWidth;
           const pdfBlob = await html2pdf()
             .set({
@@ -1507,11 +1506,7 @@
                 scale: 2,
                 useCORS: true,
                 scrollY: 0,
-                windowWidth: screenWidth,
-                onclone: function(clonedDoc) {
-                  var mp = clonedDoc.getElementById('map-preview');
-                  if (mp) mp.style.overflow = 'visible';
-                }
+                windowWidth: screenWidth
               },
               jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
               pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -1519,22 +1514,26 @@
             .from(reportEl)
             .outputPdf('blob');
 
-          // Force download with correct filename via anchor click
-          const url = URL.createObjectURL(pdfBlob);
+          // Restore UI before triggering download
+          downloadBtns.style.display = '';
+          loadAnotherBtn.style.display = '';
+
+          // Download with explicit filename
+          const pdfBlobTyped = new Blob([pdfBlob], { type: 'application/pdf' });
+          const url = URL.createObjectURL(pdfBlobTyped);
           const a = document.createElement('a');
           a.href = url;
           a.download = pdfFilename;
+          a.style.display = 'none';
           document.body.appendChild(a);
           a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
 
-          // Restore page title
-          document.title = origTitle;
-
-          // Restore UI
-          downloadBtns.style.display = '';
-          loadAnotherBtn.style.display = '';
+          // Delay cleanup so the download can start
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            document.title = origTitle;
+          }, 1000);
         } catch (err) {
           console.error('PDF generation failed:', err);
           alert('Failed to generate PDF. Please try again.');
