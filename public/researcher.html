@@ -1491,13 +1491,28 @@
           const sessionId = loadedData.sessionId || 'report';
           const pdfFilename = `${sessionId}.pdf`;
 
-          // Generate PDF blob, then download with explicit filename
+          // Temporarily set page title to desired filename (Safari uses title as download name)
+          const origTitle = document.title;
+          document.title = pdfFilename;
+
+          // Capture at screen width so the map layout isn't reflowed into a narrower PDF container.
+          // Use onclone to ensure the map container doesn't clip in the cloned DOM.
+          const screenWidth = document.documentElement.scrollWidth;
           const pdfBlob = await html2pdf()
             .set({
               margin: [10, 10, 10, 10],
               filename: pdfFilename,
               image: { type: 'jpeg', quality: 0.95 },
-              html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+              html2canvas: {
+                scale: 2,
+                useCORS: true,
+                scrollY: 0,
+                windowWidth: screenWidth,
+                onclone: function(clonedDoc) {
+                  var mp = clonedDoc.getElementById('map-preview');
+                  if (mp) mp.style.overflow = 'visible';
+                }
+              },
               jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
               pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             })
@@ -1513,6 +1528,9 @@
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
+
+          // Restore page title
+          document.title = origTitle;
 
           // Restore UI
           downloadBtns.style.display = '';
