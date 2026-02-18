@@ -1462,7 +1462,7 @@
         URL.revokeObjectURL(url);
       }
 
-      // PDF: generate and open in new tab
+      // PDF: generate and download
       $('download-pdf').addEventListener('click', async () => {
         if (!loadedData) return;
         const btn = $('download-pdf');
@@ -1479,25 +1479,27 @@
           downloadBtns.style.display = 'none';
           loadAnotherBtn.style.display = 'none';
 
+          // Temporarily allow map overflow so html2canvas captures the full map
+          const mapPreview = $('map-preview');
+          if (mapPreview) mapPreview.style.overflow = 'visible';
+
           const sessionId = loadedData.sessionId || 'report';
-          const pdf = await html2pdf()
+          await html2pdf()
             .set({
               margin: [10, 10, 10, 10],
-              filename: `session-${sessionId}.pdf`,
+              filename: `${sessionId}.pdf`,
               image: { type: 'jpeg', quality: 0.95 },
               html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
               jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
               pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             })
             .from(reportEl)
-            .outputPdf('blob');
+            .save();
 
           // Restore UI
           downloadBtns.style.display = '';
           loadAnotherBtn.style.display = '';
-
-          const url = URL.createObjectURL(pdf);
-          window.open(url, '_blank');
+          if (mapPreview) mapPreview.style.overflow = '';
         } catch (err) {
           console.error('PDF generation failed:', err);
           alert('Failed to generate PDF. Please try again.');
