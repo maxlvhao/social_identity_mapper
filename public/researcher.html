@@ -544,29 +544,74 @@
 
     /* Print styles */
     @media print {
-      body { background: white; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      body { background: white !important; }
+
       .back-link,
       .report-header .btn-secondary,
       .download-buttons,
-      .upload-section { display: none !important; }
+      .upload-section,
+      .researcher-header p { display: none !important; }
 
-      .researcher-page { padding: 0; max-width: 100%; }
+      .researcher-page { padding: 10px 0; max-width: 100%; }
+      .researcher-header { margin-bottom: 15px; }
       .report-section { display: block !important; }
 
       .report-card {
         break-inside: avoid;
-        box-shadow: none;
+        box-shadow: none !important;
         border: 1px solid #ddd;
-      }
-
-      .map-preview {
-        break-inside: avoid;
-        border-color: #ddd;
+        page-break-inside: avoid;
       }
 
       .session-info-bar {
-        box-shadow: none;
+        box-shadow: none !important;
         border: 1px solid #ddd;
+      }
+
+      /* Force scale bar colors to print */
+      .scale-bar-fill.nfm {
+        background: #3F51B5 !important;
+      }
+      .scale-bar-fill.auth {
+        background: #43A047 !important;
+      }
+      .scale-bar-track {
+        background: #eef0f4 !important;
+      }
+
+      /* Force importance badge colors */
+      .badge-high { background: var(--importance-high) !important; color: white !important; }
+      .badge-medium { background: var(--importance-medium) !important; color: white !important; }
+      .badge-low { background: var(--importance-low) !important; color: white !important; }
+
+      /* Force community card colors on map */
+      .map-group-card.size-high { background: var(--importance-high) !important; }
+      .map-group-card.size-medium { background: var(--importance-medium) !important; }
+      .map-group-card.size-low { background: var(--importance-low) !important; }
+
+      /* Map: ensure it doesn't clip and fits the page */
+      .map-preview {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border-color: #ddd;
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+
+      /* Legend colors */
+      .legend-box.high { background: var(--importance-high) !important; }
+      .legend-box.medium { background: var(--importance-medium) !important; }
+      .legend-box.low { background: var(--importance-low) !important; }
+
+      /* Connection lines */
+      .conn-easy, .conn-moderate, .conn-difficult {
+        stroke: #495057 !important;
       }
     }
   </style>
@@ -1417,6 +1462,14 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
+
+      // Re-render map for print dimensions so it doesn't clip
+      window.addEventListener('beforeprint', () => {
+        if (loadedData) renderMap();
+      });
+      window.addEventListener('afterprint', () => {
+        if (loadedData) renderMap();
+      });
 
       // PDF: open the browser print dialog (user can "Save as PDF")
       $('download-pdf').addEventListener('click', () => {
