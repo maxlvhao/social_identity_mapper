@@ -1510,19 +1510,51 @@
           const origTitle = document.title;
           document.title = sessionId;
 
-          // Re-render map with overflow:hidden so html2canvas captures
-          // everything within bounds (overflow:visible can cause clipping issues).
+          // Pre-render the map to a flat PNG image so the full-page PDF capture
+          // doesn't have to deal with SVG + absolute positioning (which html2canvas
+          // often clips or misses). Then swap the live map for the image during capture.
           const mapPreview = $('map-preview');
-          if (mapPreview) mapPreview.style.overflow = 'hidden';
-          renderMap();
+          let mapSnapshot = null;
+          let origMapHTML = '';
 
-          // Wait for layout to fully settle before capturing
-          await new Promise(resolve => {
-            requestAnimationFrame(() => requestAnimationFrame(resolve));
-          });
+          if (mapPreview) {
+            mapPreview.style.overflow = 'hidden';
+            renderMap();
 
-          // Use screen width so the full page layout (tables, charts, etc.)
-          // is preserved. html2pdf scales the capture to fit the PDF page.
+            await new Promise(resolve => {
+              requestAnimationFrame(() => requestAnimationFrame(resolve));
+            });
+
+            // Render just the map element to a canvas, then to PNG
+            const mapCanvas = await html2canvas(mapPreview, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#ffffff'
+            });
+            mapSnapshot = mapCanvas.toDataURL('image/png');
+
+            // Replace live map content with a flat image
+            origMapHTML = mapPreview.innerHTML;
+            mapPreview.innerHTML = '';
+            mapPreview.style.overflow = 'hidden';
+            mapPreview.style.backgroundImage = 'none';
+            const img = document.createElement('img');
+            img.src = mapSnapshot;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.display = 'block';
+            img.style.objectFit = 'contain';
+            mapPreview.appendChild(img);
+
+            // Wait for image to load
+            await new Promise(resolve => {
+              if (img.complete) resolve();
+              else img.onload = resolve;
+            });
+          }
+
+          // Now capture the full report — the map is just a simple <img>
           const screenWidth = document.documentElement.scrollWidth;
           const pdfBlob = await html2pdf()
             .set({
@@ -1542,8 +1574,12 @@
             .from(reportEl)
             .outputPdf('blob');
 
-          // Restore overflow
-          if (mapPreview) mapPreview.style.overflow = '';
+          // Restore the live map
+          if (mapPreview && origMapHTML) {
+            mapPreview.innerHTML = origMapHTML;
+            mapPreview.style.overflow = '';
+            mapPreview.style.backgroundImage = '';
+          }
 
           // Restore UI before triggering download
           downloadBtns.style.display = '';
