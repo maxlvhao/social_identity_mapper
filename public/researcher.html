@@ -1510,11 +1510,19 @@
           const origTitle = document.title;
           document.title = sessionId;
 
-          // Ensure the map container has overflow:hidden during capture so
-          // html2canvas computes the correct bounds (overflow:visible can cause
-          // it to miss content or clip incorrectly).
+          // Letter page = 215.9mm, minus 10mm margins each side = 195.9mm.
+          // At 96 CSS px/inch: 195.9mm / 25.4 * 96 ≈ 740px effective content width.
+          // The page is max-width:1000px on screen, so the map renders too wide for PDF.
+          // Fix: constrain to PDF width, re-render the map, capture, then restore.
+          const pdfContentWidth = 740;
+          const page = document.querySelector('.researcher-page');
+          const origMaxWidth = page.style.maxWidth;
+          page.style.maxWidth = pdfContentWidth + 'px';
+
+          // Re-render the map at the narrower PDF width so all cards fit
+          renderMap();
+
           const mapPreview = $('map-preview');
-          const origOverflow = mapPreview ? mapPreview.style.overflow : '';
           if (mapPreview) mapPreview.style.overflow = 'hidden';
 
           // Wait for layout to fully settle before capturing
@@ -1522,8 +1530,6 @@
             requestAnimationFrame(() => requestAnimationFrame(resolve));
           });
 
-          // Use windowWidth to preserve screen-width layout in the html2canvas clone
-          const screenWidth = document.documentElement.scrollWidth;
           const pdfBlob = await html2pdf()
             .set({
               margin: [10, 10, 10, 10],
@@ -1533,23 +1539,8 @@
                 scale: 2,
                 useCORS: true,
                 scrollY: 0,
-                windowWidth: screenWidth,
-                logging: false,
-                onclone: function(clonedDoc) {
-                  // Ensure the SVG in the cloned document has proper dimensions
-                  const clonedSvg = clonedDoc.getElementById('map-connections');
-                  if (clonedSvg) {
-                    const w = clonedSvg.getAttribute('width');
-                    const h = clonedSvg.getAttribute('height');
-                    if (w && h) {
-                      clonedSvg.style.width = w + 'px';
-                      clonedSvg.style.height = h + 'px';
-                    }
-                  }
-                  // Ensure map container clips properly in clone
-                  const clonedMap = clonedDoc.getElementById('map-preview');
-                  if (clonedMap) clonedMap.style.overflow = 'hidden';
-                }
+                windowWidth: pdfContentWidth,
+                logging: false
               },
               jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
               pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -1557,8 +1548,10 @@
             .from(reportEl)
             .outputPdf('blob');
 
-          // Restore overflow
-          if (mapPreview) mapPreview.style.overflow = origOverflow;
+          // Restore original layout and re-render map at screen width
+          if (mapPreview) mapPreview.style.overflow = '';
+          page.style.maxWidth = origMaxWidth;
+          renderMap();
 
           // Restore UI before triggering download
           downloadBtns.style.display = '';
