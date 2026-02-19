@@ -1238,6 +1238,12 @@
         const offsetY = (containerHeight - contentHeight * scale) / 2;
 
         // 4. Set layers to fill container — NO CSS transform
+        // Set explicit SVG attributes (not just CSS) so html2canvas captures it
+        svgLayer.setAttribute('width', containerWidth);
+        svgLayer.setAttribute('height', containerHeight);
+        svgLayer.setAttribute('viewBox', `0 0 ${containerWidth} ${containerHeight}`);
+        svgLayer.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
         [canvas, svgLayer].forEach(el => {
           el.style.width = containerWidth + 'px';
           el.style.height = containerHeight + 'px';
@@ -1274,6 +1280,10 @@
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           path.setAttribute('d', getConnectionPath(fromPos.cx, fromPos.cy, toPos.cx, toPos.cy, conn.type));
           path.setAttribute('class', `conn-${conn.type}`);
+          // Inline styles ensure html2canvas captures strokes (it can miss CSS class styles on SVGs)
+          path.setAttribute('stroke', '#495057');
+          path.setAttribute('stroke-width', '3');
+          path.setAttribute('fill', 'none');
           svgLayer.appendChild(path);
         });
 
@@ -1316,48 +1326,53 @@
         });
       }
 
+      // Synced with app.js getConnectionPath to ensure visual consistency
       function getConnectionPath(x1, y1, x2, y2, type) {
         if (type === 'easy') {
-          return `M${x1},${y1} L${x2},${y2}`;
+          return `M ${x1} ${y1} L ${x2} ${y2}`;
         } else if (type === 'moderate') {
-          // Wavy line
           const dx = x2 - x1;
           const dy = y2 - y1;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const waves = Math.max(2, Math.floor(dist / 40));
-          const perpX = -dy / dist * 10;
-          const perpY = dx / dist * 10;
+          const amp = 15;
+          const waves = Math.max(2, Math.floor(dist / 50));
 
-          let d = `M${x1},${y1}`;
-          for (let i = 1; i <= waves; i++) {
-            const t = i / waves;
-            const mx = x1 + dx * t;
-            const my = y1 + dy * t;
-            const sign = i % 2 === 1 ? 1 : -1;
-            const cx = x1 + dx * (t - 0.5 / waves) + perpX * sign;
-            const cy = y1 + dy * (t - 0.5 / waves) + perpY * sign;
-            d += ` Q${cx},${cy} ${mx},${my}`;
+          let d = `M ${x1} ${y1}`;
+          for (let i = 1; i <= waves * 2; i++) {
+            const t = i / (waves * 2);
+            const px = x1 + dx * t;
+            const py = y1 + dy * t;
+            const offset = amp * (i % 2 === 0 ? 1 : -1);
+            const perpX = -dy / dist * offset;
+            const perpY = dx / dist * offset;
+
+            if (i === waves * 2) {
+              d += ` L ${x2} ${y2}`;
+            } else {
+              d += ` Q ${px + perpX} ${py + perpY} ${x1 + dx * (t + 0.5 / (waves * 2))} ${y1 + dy * (t + 0.5 / (waves * 2))}`;
+            }
           }
           return d;
         } else {
-          // Jagged line
           const dx = x2 - x1;
           const dy = y2 - y1;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const segments = Math.max(3, Math.floor(dist / 25));
-          const perpX = -dy / dist * 8;
-          const perpY = dx / dist * 8;
+          const amp = 12;
+          const segments = Math.max(3, Math.floor(dist / 30));
 
-          let d = `M${x1},${y1}`;
+          let d = `M ${x1} ${y1}`;
           for (let i = 1; i <= segments; i++) {
             const t = i / segments;
             const px = x1 + dx * t;
             const py = y1 + dy * t;
+
             if (i < segments) {
-              const sign = i % 2 === 1 ? 1 : -1;
-              d += ` L${px + perpX * sign},${py + perpY * sign}`;
+              const offset = amp * (i % 2 === 0 ? 1 : -1);
+              const perpX = -dy / dist * offset;
+              const perpY = dx / dist * offset;
+              d += ` L ${px + perpX} ${py + perpY}`;
             } else {
-              d += ` L${px},${py}`;
+              d += ` L ${x2} ${y2}`;
             }
           }
           return d;
@@ -1495,6 +1510,18 @@
           const origTitle = document.title;
           document.title = sessionId;
 
+          // Ensure the map container has overflow:hidden during capture so
+          // html2canvas computes the correct bounds (overflow:visible can cause
+          // it to miss content or clip incorrectly).
+          const mapPreview = $('map-preview');
+          const origOverflow = mapPreview ? mapPreview.style.overflow : '';
+          if (mapPreview) mapPreview.style.overflow = 'hidden';
+
+          // Wait for layout to fully settle before capturing
+          await new Promise(resolve => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+          });
+
           // Use windowWidth to preserve screen-width layout in the html2canvas clone
           const screenWidth = document.documentElement.scrollWidth;
           const pdfBlob = await html2pdf()
@@ -1506,13 +1533,32 @@
                 scale: 2,
                 useCORS: true,
                 scrollY: 0,
-                windowWidth: screenWidth
+                windowWidth: screenWidth,
+                logging: false,
+                onclone: function(clonedDoc) {
+                  // Ensure the SVG in the cloned document has proper dimensions
+                  const clonedSvg = clonedDoc.getElementById('map-connections');
+                  if (clonedSvg) {
+                    const w = clonedSvg.getAttribute('width');
+                    const h = clonedSvg.getAttribute('height');
+                    if (w && h) {
+                      clonedSvg.style.width = w + 'px';
+                      clonedSvg.style.height = h + 'px';
+                    }
+                  }
+                  // Ensure map container clips properly in clone
+                  const clonedMap = clonedDoc.getElementById('map-preview');
+                  if (clonedMap) clonedMap.style.overflow = 'hidden';
+                }
               },
               jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
               pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             })
             .from(reportEl)
             .outputPdf('blob');
+
+          // Restore overflow
+          if (mapPreview) mapPreview.style.overflow = origOverflow;
 
           // Restore UI before triggering download
           downloadBtns.style.display = '';
