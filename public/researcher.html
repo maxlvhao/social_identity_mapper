@@ -1275,8 +1275,11 @@
 
         const containerWidth = container.clientWidth;
 
-        // Original card sizes in the main app
-        const BASE_SIZES = { high: 130, medium: 100, low: 75 };
+        // Card sizes matching what was used when data was saved
+        const isMobileSession = loadedData.device === 'mobile';
+        const BASE_SIZES = isMobileSession
+          ? { high: 100, medium: 80, low: 60 }
+          : { high: 130, medium: 100, low: 75 };
         function baseSize(importance) {
           return BASE_SIZES[importance] || BASE_SIZES.medium;
         }
@@ -1307,14 +1310,18 @@
 
         if (minX === Infinity) return;
 
-        // 2. Compute scale to fit content into the container (no CSS transform)
+        // 2. Compute scale to fit content into the container
+        // Scale up small content (e.g. mobile sessions) but cap so cards stay readable
         const pad = 20;
         const contentWidth = maxX - minX + pad * 2;
         const contentHeight = maxY - minY + pad * 2;
-        const contentRatio = contentHeight / contentWidth;
-        container.style.height = Math.round(containerWidth * contentRatio) + 'px';
+        const maxCardSize = Math.max(...communities.map(c => baseSize(c.importance)));
+        const maxScale = 130 / maxCardSize; // scale up so largest card renders at desktop size
+        const fitScale = Math.min(containerWidth / contentWidth, maxScale);
+        const scaledHeight = contentHeight * fitScale;
+        container.style.height = Math.max(300, Math.round(scaledHeight + pad * 2)) + 'px';
         const containerHeight = container.clientHeight;
-        const scale = Math.min(containerWidth / contentWidth, containerHeight / contentHeight, 1);
+        const scale = fitScale;
 
         // 3. Offsets to center the scaled content
         const offsetX = (containerWidth - contentWidth * scale) / 2;
