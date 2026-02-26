@@ -96,7 +96,7 @@
           <div class="dq"><strong>Representativeness:</strong> How well do you represent what it means to be a member? (1 = not at all, 10 = very well)</div>
         </div>
 
-        <div class="details-table-container">
+        <div class="details-table-container" id="details-table-container">
           <table class="details-table" id="details-table">
             <thead>
               <tr>
@@ -112,6 +112,9 @@
           </table>
         </div>
 
+        <!-- Mobile: stacked cards layout -->
+        <div id="details-cards" class="details-cards hidden"></div>
+
         <p class="hint" id="details-hint">Please fill in importance for all communities before continuing.</p>
 
         <div class="step-nav fixed-nav">
@@ -126,7 +129,7 @@
       <div class="step-content">
         <div class="step-header compact">
           <h2>Step 3: Topic Mapping</h2>
-          <p class="instruction instruction-prominent">Drag news topics from the panel onto your community cards. Each topic will snap to the card you drop it on. You can place the same topic on multiple communities, and drag topics off a card to remove them.</p>
+          <p class="instruction instruction-prominent" id="step3-instruction">Drag news topics from the panel onto your community cards. Each topic will snap to the card you drop it on. You can place the same topic on multiple communities, and drag topics off a card to remove them.</p>
         </div>
 
         <div class="canvas-with-panel">
@@ -224,6 +227,18 @@
     </section>
   </div>
 
+
+  <!-- Topic Picker Sheet (mobile) -->
+  <div id="topic-picker-backdrop" class="topic-picker-backdrop hidden"></div>
+  <div id="topic-picker-sheet" class="topic-picker-sheet hidden">
+    <div class="topic-picker-handle"></div>
+    <div class="topic-picker-header">
+      <h3>Topics discussed in <span id="topic-picker-title"></span></h3>
+      <p class="topic-picker-hint">Tap to select the news topics this group talks about</p>
+    </div>
+    <div id="topic-picker-grid" class="topic-picker-grid"></div>
+    <button id="topic-picker-done" class="btn btn-primary topic-picker-done">Done</button>
+  </div>
 
   <!-- Connection Type Modal -->
   <div id="connection-modal" class="modal hidden">

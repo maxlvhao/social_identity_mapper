@@ -148,6 +148,49 @@
       color: var(--primary);
     }
 
+    .completion-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+
+    .completion-badge.complete {
+      background: #43A047;
+      color: white;
+    }
+
+    .completion-badge.partial {
+      background: #FF9800;
+      color: white;
+    }
+
+    .completion-badge.not-started {
+      background: #9E9E9E;
+      color: white;
+    }
+
+    .device-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+
+    .device-badge.mobile {
+      background: #7C4DFF;
+      color: white;
+    }
+
+    .device-badge.desktop {
+      background: #546E7A;
+      color: white;
+    }
+
     .back-link {
       position: fixed;
       top: 15px;
@@ -645,6 +688,9 @@
         <div class="session-info-bar">
           <span>Session: <strong id="report-session">--</strong></span>
           <span>Created: <strong id="report-date">--</strong></span>
+          <span>Stage: <strong id="report-stage">--</strong></span>
+          <span id="report-device-badge"></span>
+          <span id="report-completion-badge"></span>
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <div class="download-buttons">
@@ -787,6 +833,16 @@
         'easy': 'Easy',
         'moderate': 'Moderate',
         'difficult': 'Difficult'
+      };
+
+      const STEP_LABELS = {
+        0: 'Landing Page',
+        1: 'Step 1: Communities',
+        2: 'Step 2: Community Details',
+        3: 'Step 3: Topic Mapping',
+        4: 'Step 4: Position Groups',
+        5: 'Step 5: Discourse Patterns',
+        6: 'Step 6: Complete'
       };
 
       // ==================== Survey Label Maps ====================
@@ -1113,15 +1169,42 @@
         $('report-session').textContent = loadedData.sessionId || 'Unknown';
         $('report-date').textContent = loadedData.createdAt ? new Date(loadedData.createdAt).toLocaleDateString() : '--';
 
+        // Stage / completion status
+        const currentStep = loadedData.currentStep;
+        const stepLabel = (currentStep !== undefined && currentStep !== null)
+          ? (STEP_LABELS[currentStep] || `Step ${currentStep}`)
+          : 'Unknown';
+        $('report-stage').textContent = stepLabel;
+
+        const badgeEl = $('report-completion-badge');
+        if (currentStep === 6) {
+          badgeEl.innerHTML = '<span class="completion-badge complete">Complete</span>';
+        } else if (currentStep !== undefined && currentStep !== null && currentStep > 0) {
+          badgeEl.innerHTML = '<span class="completion-badge partial">Partial</span>';
+        } else if (currentStep === 0 || currentStep === undefined || currentStep === null) {
+          badgeEl.innerHTML = '<span class="completion-badge not-started">Not Started</span>';
+        }
+
+        // Device badge
+        const deviceEl = $('report-device-badge');
+        const device = loadedData.device;
+        if (device === 'mobile') {
+          deviceEl.innerHTML = '<span class="device-badge mobile">Mobile</span>';
+        } else if (device === 'desktop') {
+          deviceEl.innerHTML = '<span class="device-badge desktop">Desktop</span>';
+        } else {
+          deviceEl.innerHTML = '';
+        }
+
         // Determine if there is activity data (communities/connections/topics)
         const hasActivityData = (loadedData.communities && loadedData.communities.length > 0)
           || (loadedData.connections && loadedData.connections.length > 0)
           || (loadedData.placedTopics && loadedData.placedTopics.length > 0);
 
-        // Show/hide activity sections
+        // Always show activity section — render whatever data exists (partial or complete)
         const activityCards = $('activity-section');
         if (activityCards) {
-          activityCards.style.display = hasActivityData ? 'block' : 'none';
+          activityCards.style.display = 'block';
         }
 
         // Survey data
@@ -1137,19 +1220,19 @@
           }
         }
 
+        // Communities table (always render — shows empty state if none)
+        renderCommunitiesTable();
+
+        // Position map with connections and topics (defer to ensure layout is computed)
         if (hasActivityData) {
-          // Communities table
-          renderCommunitiesTable();
-
-          // Position map with connections and topics (defer to ensure layout is computed)
           requestAnimationFrame(() => renderMap());
-
-          // Connections table
-          renderConnectionsTable();
-
-          // Topics table
-          renderTopicsTable();
         }
+
+        // Connections table (always render — shows empty state if none)
+        renderConnectionsTable();
+
+        // Topics table (always render — shows empty state if none)
+        renderTopicsTable();
       }
 
       function renderCommunitiesTable() {

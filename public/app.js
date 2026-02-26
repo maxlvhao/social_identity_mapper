@@ -30,6 +30,10 @@
     placedTopics: []   // { id, topicId, communityId }
   };
 
+  // Detect mobile/touch-primary device
+  const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+    && window.matchMedia('(max-width: 768px)').matches;
+
   let saveTimeout = null;
   let dragState = null;
   let drawingConnection = null;
@@ -85,6 +89,9 @@
       console.log('Server unavailable, using local data');
     }
 
+    // Record the device used for this session (always update to current device)
+    state.device = isMobile ? 'mobile' : 'desktop';
+
     // Migrate old data format: placedTopics with {x, y} → {communityId}
     migratePlacedTopics();
 
@@ -109,6 +116,8 @@
     if (!needsMigration) return;
 
     // Find nearest community for each old-format topic
+    // Use original desktop sizes since the saved x/y positions were created with these
+    const LEGACY_SIZES = { high: 130, medium: 100, low: 75 };
     state.placedTopics = state.placedTopics.map(placed => {
       if (placed.communityId !== undefined) return placed;
       if (placed.x === undefined || placed.y === undefined) return placed;
@@ -118,7 +127,7 @@
 
       state.communities.forEach(c => {
         if (c.x === null || c.y === null) return;
-        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        const size = LEGACY_SIZES[c.importance] || LEGACY_SIZES.medium;
         const cx = c.x + size / 2;
         const cy = c.y + size / 2;
         const dx = placed.x - cx;
@@ -279,9 +288,9 @@
     });
     $('connection-modal').querySelector('.modal-backdrop').addEventListener('click', closeConnectionModal);
 
-    // Global mouse events for dragging
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    // Global pointer events for dragging (unified mouse + touch + pen)
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
   }
 
   // ==================== STEP 1: ADD COMMUNITIES ====================
@@ -345,6 +354,19 @@
 
   // ==================== STEP 2: COMMUNITY DETAILS ====================
   function renderStep2() {
+    if (isMobile) {
+      $('details-table-container').classList.add('hidden');
+      $('details-cards').classList.remove('hidden');
+      renderStep2Mobile();
+    } else {
+      $('details-table-container').classList.remove('hidden');
+      $('details-cards').classList.add('hidden');
+      renderStep2Desktop();
+    }
+    updateStep2NextButton();
+  }
+
+  function renderStep2Desktop() {
     const tbody = $('details-tbody');
 
     tbody.innerHTML = state.communities.map(c => `
@@ -365,10 +387,57 @@
       </tr>
     `).join('');
 
-    tbody.querySelectorAll('.importance-select').forEach(select => {
+    bindStep2Events(tbody);
+  }
+
+  function renderStep2Mobile() {
+    const container = $('details-cards');
+
+    container.innerHTML = state.communities.map(c => `
+      <div class="detail-card" data-id="${c.id}">
+        <div class="detail-card-name">${escapeHtml(c.name)}</div>
+        <div class="detail-card-fields">
+          <label class="detail-field">
+            <span class="detail-field-label">Importance</span>
+            <select class="importance-select" data-id="${c.id}">
+              <option value="">Select...</option>
+              <option value="high" ${c.importance === 'high' ? 'selected' : ''}>Very Important</option>
+              <option value="medium" ${c.importance === 'medium' ? 'selected' : ''}>Moderate</option>
+              <option value="low" ${c.importance === 'low' ? 'selected' : ''}>Less Important</option>
+            </select>
+          </label>
+          <div class="detail-field-row">
+            <label class="detail-field half">
+              <span class="detail-field-label">Positivity <span class="detail-field-hint">(1-10)</span></span>
+              <input type="number" inputmode="numeric" min="1" max="10" ${c.positivity !== null ? `value="${c.positivity}"` : ''} data-field="positivity" placeholder="1-10">
+            </label>
+            <label class="detail-field half">
+              <span class="detail-field-label">Contact <span class="detail-field-hint">(days/mo)</span></span>
+              <input type="number" inputmode="numeric" min="0" max="30" ${c.contact !== null ? `value="${c.contact}"` : ''} data-field="contact" placeholder="0-30">
+            </label>
+          </div>
+          <div class="detail-field-row">
+            <label class="detail-field half">
+              <span class="detail-field-label">Tenure <span class="detail-field-hint">(years)</span></span>
+              <input type="number" inputmode="decimal" min="0" step="0.5" ${c.tenure !== null ? `value="${c.tenure}"` : ''} data-field="tenure" placeholder="e.g. 2.5">
+            </label>
+            <label class="detail-field half">
+              <span class="detail-field-label">Representative <span class="detail-field-hint">(1-10)</span></span>
+              <input type="number" inputmode="numeric" min="1" max="10" ${c.representativeness !== null ? `value="${c.representativeness}"` : ''} data-field="representativeness" placeholder="1-10">
+            </label>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    bindStep2Events(container);
+  }
+
+  function bindStep2Events(container) {
+    container.querySelectorAll('.importance-select').forEach(select => {
       select.addEventListener('change', () => {
-        const row = select.closest('tr');
-        const communityId = row.dataset.id;
+        const card = select.closest('[data-id]');
+        const communityId = card.dataset.id;
         const community = state.communities.find(c => c.id === communityId);
         if (community) {
           community.importance = select.value || null;
@@ -378,10 +447,10 @@
       });
     });
 
-    tbody.querySelectorAll('input').forEach(input => {
+    container.querySelectorAll('input').forEach(input => {
       input.addEventListener('change', () => {
-        const row = input.closest('tr');
-        const communityId = row.dataset.id;
+        const card = input.closest('[data-id]');
+        const communityId = card.dataset.id;
         const field = input.dataset.field;
         const value = input.value ? parseFloat(input.value) : null;
 
@@ -392,8 +461,6 @@
         }
       });
     });
-
-    updateStep2NextButton();
   }
 
   function updateStep2NextButton() {
@@ -445,7 +512,7 @@
       }
 
       if (draggable) {
-        card.addEventListener('mousedown', e => {
+        card.addEventListener('pointerdown', e => {
           // Don't start card drag if clicking on a topic tag
           if (e.target.closest('.card-topic-tag')) return;
           startDrag(e, c.id, canvas);
@@ -460,7 +527,13 @@
   function renderTopicsStep() {
     const canvas = $('groups-canvas-3');
     const container = $('canvas-container-step3');
-    const topicsPanel = $('topics-list');
+
+    // Update instruction text for mobile
+    const instrEl = $('step3-instruction');
+    if (instrEl && isMobile) {
+      instrEl.textContent = 'Tap on each community card to select the news topics that group discusses. You can assign the same topic to multiple communities.';
+      instrEl.dataset.originalHtml = instrEl.textContent;
+    }
 
     // Initialize positions if not set (circular layout)
     const containerRect = container.getBoundingClientRect();
@@ -471,18 +544,29 @@
       if (c.x === null || c.y === null) {
         const angle = (i / state.communities.length) * 2 * Math.PI;
         const radius = Math.min(centerX, centerY) * 0.5;
-        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        const size = getCardSize(c.importance);
         c.x = centerX + Math.cos(angle) * radius - size / 2;
         c.y = centerY + Math.sin(angle) * radius - size / 2;
       }
     });
 
-    // Render cards with topics (not draggable — cards are locked, only topics drag)
+    // Render cards with topics (not draggable — cards are locked)
     renderGroupCardsWithState(canvas, state, false, true);
 
-    // Setup topic drag-off from cards (drag existing topic tag to remove/reassign)
+    if (isMobile) {
+      renderTopicsStepMobile(canvas, container);
+    } else {
+      renderTopicsStepDesktop(canvas, container);
+    }
+  }
+
+  // Desktop: drag topics from panel onto cards
+  function renderTopicsStepDesktop(canvas, container) {
+    const topicsPanel = $('topics-list');
+
+    // Setup topic drag-off from cards
     canvas.querySelectorAll('.card-topic-tag').forEach(tag => {
-      tag.addEventListener('mousedown', e => {
+      tag.addEventListener('pointerdown', e => {
         e.preventDefault();
         e.stopPropagation();
         startTopicDragFromCard(e, tag.dataset.placedId, container);
@@ -499,8 +583,96 @@
 
     // Setup drag from panel
     topicsPanel.querySelectorAll('.topic-tag').forEach(tag => {
-      tag.addEventListener('mousedown', e => startTopicDragFromPanel(e, tag.dataset.topicId, container));
+      tag.addEventListener('pointerdown', e => startTopicDragFromPanel(e, tag.dataset.topicId, container));
     });
+  }
+
+  // Mobile: tap a card to open topic picker sheet
+  function renderTopicsStepMobile(canvas, container) {
+    // Hide the drag panel on mobile — we use the tap sheet instead
+    const panel = $('topics-panel');
+    if (panel) panel.classList.add('hidden');
+
+    // Make cards tappable
+    canvas.querySelectorAll('.group-card').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
+        openTopicPicker(card.dataset.id);
+      });
+    });
+  }
+
+  function openTopicPicker(communityId) {
+    const community = state.communities.find(c => c.id === communityId);
+    if (!community) return;
+
+    // Get currently assigned topic IDs for this community
+    const assignedTopicIds = state.placedTopics
+      .filter(p => p.communityId === communityId)
+      .map(p => p.topicId);
+
+    const sheet = $('topic-picker-sheet');
+    const backdrop = $('topic-picker-backdrop');
+
+    $('topic-picker-title').textContent = community.name;
+
+    const grid = $('topic-picker-grid');
+    grid.innerHTML = NEWS_TOPICS.map(topic => {
+      const isSelected = assignedTopicIds.includes(topic.id);
+      return `
+        <button class="topic-chip ${isSelected ? 'selected' : ''}" data-topic-id="${topic.id}">
+          <span class="topic-chip-icon">${topic.icon}</span>
+          <span class="topic-chip-label">${topic.short}</span>
+        </button>
+      `;
+    }).join('');
+
+    // Toggle topics on tap
+    grid.querySelectorAll('.topic-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const topicId = chip.dataset.topicId;
+        const isSelected = chip.classList.contains('selected');
+
+        if (isSelected) {
+          // Remove this topic from this community
+          state.placedTopics = state.placedTopics.filter(
+            p => !(p.communityId === communityId && p.topicId === topicId)
+          );
+          chip.classList.remove('selected');
+        } else {
+          // Add this topic to this community
+          state.placedTopics.push({
+            id: generateId('pt_'),
+            topicId: topicId,
+            communityId: communityId
+          });
+          chip.classList.add('selected');
+        }
+        saveSession();
+      });
+    });
+
+    // Show sheet with animation
+    backdrop.classList.remove('hidden');
+    sheet.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      backdrop.classList.add('visible');
+      sheet.classList.add('visible');
+    });
+
+    // Close handlers
+    const close = () => {
+      sheet.classList.remove('visible');
+      backdrop.classList.remove('visible');
+      setTimeout(() => {
+        sheet.classList.add('hidden');
+        backdrop.classList.add('hidden');
+        renderTopicsStep(); // re-render cards with updated topics
+      }, 250);
+    };
+
+    backdrop.onclick = close;
+    $('topic-picker-done').onclick = close;
   }
 
   function startTopicDragFromPanel(e, topicId, container) {
@@ -512,8 +684,12 @@
       topicId,
       placedId: null,
       isNew: true,
+      pointerId: e.pointerId,
       container
     };
+
+    // Capture pointer on the source element for reliable tracking
+    e.target.closest('.topic-tag').setPointerCapture(e.pointerId);
 
     // Create ghost element
     const ghost = document.createElement('div');
@@ -545,8 +721,12 @@
       topicId: placed.topicId,
       placedId,
       isNew: false,
+      pointerId: e.pointerId,
       container
     };
+
+    // Capture pointer on the source element for reliable tracking
+    e.target.closest('.card-topic-tag').setPointerCapture(e.pointerId);
 
     // Create ghost
     const ghost = document.createElement('div');
@@ -583,7 +763,7 @@
       if (c.x === null || c.y === null) {
         const angle = (i / state.communities.length) * 2 * Math.PI;
         const radius = Math.min(centerX, centerY) * 0.5;
-        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        const size = getCardSize(c.importance);
         c.x = centerX + Math.cos(angle) * radius - size / 2;
         c.y = centerY + Math.sin(angle) * radius - size / 2;
       }
@@ -621,7 +801,7 @@
 
     // Setup connection drawing from groups
     canvas.querySelectorAll('.group-card').forEach(card => {
-      card.addEventListener('mousedown', e => startDrawingConnection(e, card.dataset.id, container));
+      card.addEventListener('pointerdown', e => startDrawingConnection(e, card.dataset.id, container));
     });
 
     // Show tutorial once
@@ -766,9 +946,11 @@
       startY,
       currentX: startX,
       currentY: startY,
+      pointerId: e.pointerId,
       container
     };
 
+    card.setPointerCapture(e.pointerId);
     updateDrawingLine();
   }
 
@@ -886,7 +1068,7 @@
     let maxX = -Infinity, maxY = -Infinity;
 
     state.communities.forEach(c => {
-      const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+      const size = getCardSize(c.importance);
       if (c.x < minX) minX = c.x;
       if (c.y < minY) minY = c.y;
       if (c.x + size > maxX) maxX = c.x + size;
@@ -897,7 +1079,7 @@
     state.communities.forEach(c => {
       const topicsForCard = state.placedTopics.filter(p => p.communityId === c.id);
       if (topicsForCard.length > 0) {
-        const size = c.importance === 'high' ? 130 : c.importance === 'low' ? 75 : 100;
+        const size = getCardSize(c.importance);
         const topicHeight = Math.ceil(topicsForCard.length / 2) * 24 + 8;
         const bottomY = c.y + size + topicHeight;
         if (bottomY > maxY) maxY = bottomY;
@@ -997,6 +1179,7 @@
 
   // ==================== DRAG HANDLING ====================
   function startDrag(e, communityId, canvas) {
+    e.preventDefault();
     const card = canvas.querySelector(`[data-id="${communityId}"]`);
     const rect = card.getBoundingClientRect();
     const containerRect = canvas.parentElement.getBoundingClientRect();
@@ -1004,15 +1187,17 @@
     dragState = {
       communityId,
       canvas,
+      pointerId: e.pointerId,
       offsetX: e.clientX - rect.left,
       offsetY: e.clientY - rect.top,
       containerRect
     };
 
+    card.setPointerCapture(e.pointerId);
     card.classList.add('dragging');
   }
 
-  function handleMouseMove(e) {
+  function handlePointerMove(e) {
     // Card dragging
     if (dragState) {
       const card = dragState.canvas.querySelector(`[data-id="${dragState.communityId}"]`);
@@ -1066,10 +1251,11 @@
     }
   }
 
-  function handleMouseUp(e) {
+  function handlePointerUp(e) {
     // Card drag end
     if (dragState) {
       const card = dragState.canvas.querySelector(`[data-id="${dragState.communityId}"]`);
+      releaseCapture(card, dragState.pointerId);
       card.classList.remove('dragging');
       dragState = null;
       saveSession();
@@ -1077,6 +1263,8 @@
 
     // Connection drawing end
     if (drawingConnection) {
+      const srcCard = drawingConnection.container.querySelector(`[data-id="${drawingConnection.fromId}"]`);
+      releaseCapture(srcCard, drawingConnection.pointerId);
       const target = document.elementFromPoint(e.clientX, e.clientY);
       const card = target?.closest('.group-card');
 
@@ -1101,7 +1289,8 @@
         card.classList.remove('drop-target-active');
       });
 
-      // Find which card we're over (hide ghost first already removed)
+      // Release capture so elementFromPoint can find what's under the pointer
+      try { e.target.releasePointerCapture(topicDragState.pointerId); } catch (_) {}
       const target = document.elementFromPoint(e.clientX, e.clientY);
       const hoveredCard = target?.closest('.group-card');
 
@@ -1141,6 +1330,22 @@
   }
 
   // ==================== UTILITIES ====================
+  function releaseCapture(el, pointerId) {
+    try { if (el && pointerId != null) el.releasePointerCapture(pointerId); } catch (_) {}
+  }
+
+  function getCardSize(importance) {
+    // Read actual rendered size from a temporary element to match CSS (including media queries)
+    const test = document.createElement('div');
+    test.className = `group-card size-${importance || 'medium'}`;
+    test.style.position = 'absolute';
+    test.style.visibility = 'hidden';
+    document.body.appendChild(test);
+    const w = test.offsetWidth;
+    document.body.removeChild(test);
+    return w;
+  }
+
   function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
